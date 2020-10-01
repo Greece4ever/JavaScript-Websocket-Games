@@ -23,8 +23,8 @@ function App() {
     87 : () => setCaligrapgy(prev => prev + 1),
     83 : () => setCaligrapgy(prev => prev - 1),
     67 : () => {let pick = document.getElementById("pick");pick.style.visibility = "visible";pick.click();pick.style.visibility = "hidden";}
-  })
-
+  });
+  const [undo,setUndo] = useState(false);
 
   useEffect(() => {
     const canvas = document.getElementById("canvas");
@@ -35,26 +35,64 @@ function App() {
     // // ctx.moveTo(e.clientX-diff,e.clientY-diff);
 
     // tmp.forEach(cords => {
-    //   ctx.lineTo(...cords)
-    //   ctx.stroke();
-    //   ctx.beginPath();  
+      // ctx.lineTo(...cords)
+      // ctx.stroke();
+      // ctx.beginPath();  
     // })
     
 
   })
+
+  const clearCanvas = () => {
+    let ctx = document.getElementById("canvas").getContext("2d");
+    ctx.clearRect(0,0,document.getElementById("canvas").width,document.getElementById("canvas").height);
+  }
+
+  const redraw = () => {
+    clearCanvas();
+    if(paths.length === 0) return null;
+    const canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    ctx.lineCap = "round";
+
+    paths.forEach(bitdata => {
+      ctx.beginPath();
+      
+      // Define Color and Width
+      ctx.lineWidth = bitdata[2];
+      ctx.strokeStyle = bitdata[3];
+
+      ctx.lineTo(bitdata[0],bitdata[1]);
+      ctx.stroke();
+      ctx.beginPath();  
+      ctx.moveTo(bitdata[0],bitdata[1]);
+
+    })
+  }
+
+  useEffect(() => {
+    redraw();    
+  },[undo])
+
 
   // Draw on Screen
   const handleMove = (e) => { 
     const canvas = document.getElementById("canvas");
     if(!drawing) return null;
     let ctx = canvas.getContext("2d");
+
+    // Settings
     ctx.lineCap = "round";
     ctx.lineWidth = LineWidth;
     ctx.strokeStyle  = color;
-    let [x,y] = [e.clientX,e.clientY]
-    // ctx.moveTo(e.clientX-diff,e.clientY-diff);
+    let [x,y] = [e.clientX-10,e.clientY-20]
+    if(keys){
+      ctx.arc(x,y,50,0,Math.pi / 2)
+      ctx.stroke()
+      return;
+    }
     ctx.lineTo(x,y);
-    setPaths(prev => [...prev,[x,y]])
+    setPaths(prev => [...prev,[x,y,LineWidth,color]])
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(x-caligraphy,y-caligraphy)
@@ -93,10 +131,15 @@ function App() {
       setKeys(true)
     }
 
+    // Undo
+    else if (e.keyCode === 90 && keys){
+      setPaths(prev => prev.slice(0,prev.length-2));
+      setUndo(prev => !prev);
+    }
+
     // Clear
     else if (e.keyCode === 88 && keys){
-      let ctx = document.getElementById("canvas").getContext("2d");
-      ctx.clearRect(0,0,document.getElementById("canvas").width,document.getElementById("canvas").height);
+      clearCanvas();setPaths(prev => []);
     }
 
     // Reset
