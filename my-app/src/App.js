@@ -14,8 +14,17 @@ function App() {
   const [drawing,setDrawing] = useState(false);
   const [LineWidth,setLineWidth] = useState(10);
   const [caligraphy,setCaligrapgy] = useState(0);
-  const [color,setColor] = useState("#000000")
-  const [paths,setPaths] = useState([])
+  const [color,setColor] = useState("#000000");
+  const [keys,setKeys] = useState(false);
+  const [paths,setPaths] = useState([]);
+  const [keyPress,No] = useState({
+    65 : () => setLineWidth(prev => prev + 1),
+    68 : () => setLineWidth(prev => prev - 1),
+    87 : () => setCaligrapgy(prev => prev + 1),
+    83 : () => setCaligrapgy(prev => prev - 1),
+    67 : () => {let pick = document.getElementById("pick");pick.style.visibility = "visible";pick.click();pick.style.visibility = "hidden";}
+  })
+
 
   useEffect(() => {
     const canvas = document.getElementById("canvas");
@@ -34,6 +43,7 @@ function App() {
 
   })
 
+  // Draw on Screen
   const handleMove = (e) => { 
     const canvas = document.getElementById("canvas");
     if(!drawing) return null;
@@ -41,7 +51,7 @@ function App() {
     ctx.lineCap = "round";
     ctx.lineWidth = LineWidth;
     ctx.strokeStyle  = color;
-    let [x,y] = [e.clientX,e.clientY-30]
+    let [x,y] = [e.clientX,e.clientY]
     // ctx.moveTo(e.clientX-diff,e.clientY-diff);
     ctx.lineTo(x,y);
     setPaths(prev => [...prev,[x,y]])
@@ -51,6 +61,7 @@ function App() {
     // console.log(paths)
   }
 
+  // Change Paint styles
   const handleKeyPress = (e) => {
     if(e.keyCode===65){
       setLineWidth(prev => prev +1)
@@ -71,17 +82,51 @@ function App() {
     }
   }
 
+  // Cut and Undo && Key Presses
+  const handleKeyDown = (e) => {
+    let f = keyPress[e.keyCode]
+    if(f !== undefined){
+      return f();
+    }
+
+    if(e.keyCode === 17){
+      setKeys(true)
+    }
+
+    // Clear
+    else if (e.keyCode === 88 && keys){
+      let ctx = document.getElementById("canvas").getContext("2d");
+      ctx.clearRect(0,0,document.getElementById("canvas").width,document.getElementById("canvas").height);
+    }
+
+    // Reset
+    else if (e.keyCode === 77 && keys){
+      setCaligrapgy(0);
+      setLineWidth(10);
+      setColor("#000000");
+    }
+
+  }
+
+  const handleKeyUp = (e) => {
+    if(e.keyCode === 17){
+      setKeys(false);
+    }
+  }
+
   return (
     <div>
       <div>
-        hello world
+        <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
-      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair"}} onKeyDown={e => handleKeyPress(e)}
-       onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}} 
+      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px"}} onKeyDown={e => handleKeyPress(e)}
+       onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
+       onKeyDown={(e) => handleKeyDown(e)} 
+       onKeyUp={(e) => handleKeyUp(e)}
        onMouseDown={() => setDrawing(true)} 
        onMouseMove={(e) => {handleMove(e)}} width={800} height={500} id="canvas"></canvas>
       <div style={{"float" : "right",resize : "none",marginRight : "50px"}}>
-        <div className={"css"} style={{height : "500px",width : "200px",backgroundColor : "transparent"}}>
+        <div className={"css"} style={{height : "421px",width : "200px",backgroundColor : "transparent"}}>
         </div>
         <Form.Group style={{"marginTop" : "30px"}}  controlId="exampleForm.ControlTextarea1">
           <Form.Control style={{"resize" : "none","maxHeight" : "50px"}} as="textarea" rows="3" />
