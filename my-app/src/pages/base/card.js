@@ -18,3 +18,11 @@ export default function MPCard(props) {
     </Card.Body>
     </Card>)
 }
+
+export const BigCard = (props) => {
+    return(
+    <Card style={{ width: '30rem',height : '30rem',borderRadius : 0,border : "1px solid #333",position : "relative" }}>
+        <Card.Img style={{objectFit : "contain"}} src={props.img}></Card.Img>
+    </Card>)
+
+}
