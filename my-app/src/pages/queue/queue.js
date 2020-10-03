@@ -1,6 +1,5 @@
 import React,{useState,useEffect} from 'react';
-import axios from 'axios';
-import {Form,Button,Container,Dropdown,Spinner} from "react-bootstrap"
+import {Form,Button,Container,Dropdown,Spinner,Alert} from "react-bootstrap"
 
 var domain = `ws://localhost:8000`
 
@@ -16,13 +15,18 @@ const Queue = () => {
     const [game,setGame] = useState("Choose a Game");
     const [ready,setReady] = useState(false);
     const [cdata,setCDATA] = useState(false)
+    const [error,setError] = useState('');
     const spinner = <Spinner animation="border" variant="primary" role="status" style={{"width" : "200px","height" : "200px"}}><span className="sr-only">Loading...</span></Spinner>;
 
     const handleMessage = (event) => {
         let msg = JSON.parse(event.data);
         if(msg.connect){
-            console.log(msg);
-            setCDATA([msg.position,msg.client_num])
+            setCDATA(msg.client_num);
+            setError('');
+        } else {
+            let c_num = msg.client_num;
+            if(c_num==3){console.log("WE SHALL MOVE TO",msg.key)}
+            setCDATA(msg.client_num)
         }
     }
 
@@ -35,19 +39,22 @@ const Queue = () => {
     useEffect(() => {
         if(sock===undefined) return () => {}
         sock.onmessage = (data) => {handleMessage(data)}
-        sock.onclose = () => {console.log("socket closed")}
+        sock.onerror = () => {
+            console.log("err")
+            setError(true);setHasName(false);setReady(false);
+        }
         sock.onopen = () => {console.log("connection opened")}
     })
 
     const handleSubmit = () => {
         let username = document.getElementById(`usr`).value;
-        document.cookie = `username=${username}`
-        console.log("Username is " + username);
+        document.cookie = `username=${username}`;
         setHasName(true);setReady(true);
     }
 
     return (
         <Container style={{"maxWidth" : "470px"}}>
+            {error.length==0 ? '' : <Alert variant={"danger"} style={{"backgroundColor" : "rgb(69, 44, 47)",border : 0,color : "rgb(255, 181, 187)",marginTop : "10px"}}>Username "{name}" Already exists in lobby.</Alert>}
             <Form onSubmit={(e) => {e.preventDefault();handleSubmit(e)}}>
             <Form.Group>
                 <Form.Label style={{"color" : "#eaeaea"}}>Enter your Username.</Form.Label>
@@ -73,7 +80,7 @@ const Queue = () => {
             </div>
 
             </Form>
-            {!ready ?  '' : <div style={{'textAlign' : "center",fontFamily : "sans-serif"}}>{spinner}<label style={{"color" : "#eae2e2",marginTop : "20px"}}>Waiting for <b style={{"color" : "#007bff"}}>{4-cdata[1]}</b> more players to connect.</label></div>}
+            {!ready ?  '' : <div style={{marginTop : "100px",'textAlign' : "center",fontFamily : "sans-serif"}}>{spinner}<label style={{"color" : "#eae2e2",marginTop : "20px"}}> Waiting for <b style={{"color" : "#007bff"}}>{4-cdata-1} </b> more players to connect on game {game}.</label></div>}
         </Container>
     )
 }
