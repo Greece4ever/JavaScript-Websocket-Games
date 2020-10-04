@@ -1,7 +1,11 @@
 import React,{useState,useEffect} from 'react';
 import {Form,Button,Container,Dropdown,Spinner,Alert} from "react-bootstrap"
 
-var domain = `ws://localhost:8000`
+var domain = `ws://localhost:8000`;
+
+var clearCookies = () => {
+    return document.cookie.split(";").forEach(function(c) { document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); });
+}
 
 const handleAscii = (str) => {
     return str.replace(" ",'_')
@@ -17,15 +21,24 @@ const Queue = () => {
     const [cdata,setCDATA] = useState(false)
     const [error,setError] = useState('');
     const spinner = <Spinner animation="border" variant="primary" role="status" style={{"width" : "200px","height" : "200px"}}><span className="sr-only">Loading...</span></Spinner>;
+    let MAX_PLAYERS = 2;
+    const [move,setMove] = useState(false)
 
     const handleMessage = (event) => {
         let msg = JSON.parse(event.data);
         if(msg.connect){
-            setCDATA(msg.client_num);
             setError('');
+            if(msg.key) {
+                setMove(msg.key);
+                return;
+            }
+            setCDATA(msg.client_num);
         } else {
             let c_num = msg.client_num;
-            if(c_num==3){console.log("WE SHALL MOVE TO",msg.key)}
+            if(c_num==MAX_PLAYERS-1){
+                console.log("WE SHALL MOVE TO",msg.key);
+                setMove(msg.key)
+        }
             setCDATA(msg.client_num)
         }
     }
@@ -80,7 +93,8 @@ const Queue = () => {
             </div>
 
             </Form>
-            {!ready ?  '' : <div style={{marginTop : "100px",'textAlign' : "center",fontFamily : "sans-serif"}}>{spinner}<label style={{"color" : "#eae2e2",marginTop : "20px"}}> Waiting for <b style={{"color" : "#007bff"}}>{4-cdata-1} </b> more players to connect on game {game}.</label></div>}
+    {move ?   <div style={{marginTop : "100px",'textAlign' : "center",fontFamily : "sans-serif"}}>{spinner}<label style={{"color" : "#eae2e2",marginTop : "20px"}}>Moving to <b style={{"color" : "#eae2e2"}}>{move}</b>.</label></div> :  
+            !ready ?  '' : <div style={{marginTop : "100px",'textAlign' : "center",fontFamily : "sans-serif"}}>{spinner}<label style={{"color" : "#eae2e2",marginTop : "20px"}}> Waiting for <b style={{"color" : "#007bff"}}>{MAX_PLAYERS-cdata-1} </b> more players to connect on game <b style={{"color" : "#007bff"}}>{game}</b>.</label></div>}
         </Container>
     )
 }
