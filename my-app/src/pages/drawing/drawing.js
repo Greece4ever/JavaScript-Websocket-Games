@@ -2,12 +2,11 @@
 // import {BrowserRouter as Router,Route, Switch} from 'react-router-dom'
 import React,{useEffect,useState} from "react"
 import "./base.css"
-import {Form} from "react-bootstrap"
+import {Form,Container,Button} from "react-bootstrap"
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 
 // https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
-
 
 export default function Drawing() {
   const [drawing,setDrawing] = useState(false);
@@ -24,6 +23,34 @@ export default function Drawing() {
     67 : () => {let pick = document.getElementById("pick");pick.style.visibility = "visible";pick.click();pick.style.visibility = "hidden";}
   });
   const [undo,setUndo] = useState(false);
+  const [socket,setSocket] = useState();
+  const [enter,setEnter] = useState(false)
+  const [cords,setCords] = useState([50,50])
+
+  // useEffect(() => {
+  //   let port = 8000;
+  //   const socket = new WebSocket(`ws://${window.location.host}:${PORT}/drawing`);
+  //   setSocket(socket);
+  // },[])
+
+  // useEffect(() => {
+  //   socket.onConnect = () => {
+  //     console.log("Connected")
+  //   }
+
+  //   socket.onmessage = () => {
+  //     console.log("msg")
+  //   }
+
+  //   socket.onclose = () => {
+  //     console.log("closed")
+  //   }
+
+  //   socket.onerror = () => {
+  //     console.log("error")
+  //   }
+
+  // })
 
   useEffect(() => {
     const canvas = document.getElementById("canvas");
@@ -38,8 +65,6 @@ export default function Drawing() {
       // ctx.stroke();
       // ctx.beginPath();  
     // })
-    
-
   })
 
   const clearCanvas = () => {

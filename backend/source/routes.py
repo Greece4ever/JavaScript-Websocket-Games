@@ -1,5 +1,9 @@
 from . import views
 
-url_patterns = {
-    r"/drawing/" : views.Drawing()
+sock_url_patterns = {
+    r"/drawing(\/)?" : views.Drawing()
+}
+
+rest_api_patterns = {
+    r"/avatar(\/)?" : views.AvatarUpload()
 }
