@@ -1,3 +1,13 @@
 {
-    "python.pythonPath": "backend\\virtual\\Scripts\\python.exe"
+    "python.pythonPath": "backend\\virtual\\Scripts\\python.exe",
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "${workspaceFolder:JavaScript-Websocket-Games}/backend/source/db.SQL",
+            "name": "Database",
+            "group": "DB"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
 }
