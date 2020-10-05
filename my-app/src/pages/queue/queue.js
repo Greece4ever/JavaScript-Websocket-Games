@@ -1,5 +1,5 @@
 import React,{useState,useEffect} from 'react';
-import {Form,Button,Container,Dropdown,Spinner,Alert} from "react-bootstrap"
+import {Form,Button,Container,ProgressBar,Spinner,Alert} from "react-bootstrap"
 import axios from "axios";
 
 var domain = (protocol,port) => {
@@ -32,6 +32,16 @@ const checkUsername = (name) => {
     })
 }
 
+const isGoodPassword = (password) => {
+    let points = 0;
+    let w_reg = /\w+/;
+    if(password.length > 8) points+=1; // More than 8 charachters
+    if((/\d+/).test(password) && (w_reg).test(password)) points +=1; // Characters and numbers
+    if((/^[A-Z \d\W]+/).test(password) && (w_reg).test(password)) points +=1; // Both Lower and Upper case
+    if((/\W+/).test(password)) points +=1;
+    return points;
+}
+
 const Queue = () => {
     useEffect(() => {document.body.style.backgroundColor = "#333b52"});
     const [name,setName] = useState("");
@@ -42,6 +52,7 @@ const Queue = () => {
     const [img,setImg] = useState();
     const [pass,setPass] = useState("");
     const [spinner,setSpiner] = useState('');
+    const [passtat,setPasstat] = useState(['danger','Very Low',25])
 
     let ok = <svg style={{"color" : "#44d6af",marginLeft : "10px"}} width="1em" height="1em" viewBox="0 0 16 16" className="bi bi-bookmark-check-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M4 0a2 2 0 0 0-2 2v13.5a.5.5 0 0 0 .74.439L8 13.069l5.26 2.87A.5.5 0 0 0 14 15.5V2a2 2 0 0 0-2-2H4zm6.854 5.854a.5.5 0 0 0-.708-.708L7.5 7.793 6.354 6.646a.5.5 0 1 0-.708.708l1.5 1.5a.5.5 0 0 0 .708 0l3-3z"/></svg>;
     let spin = <Spinner style={{"width" : "1em",height:"1em",marginLeft : "10px"}} animation="border" />
@@ -56,6 +67,14 @@ const Queue = () => {
             if(e.response) msg = e.response.data.error
             setError(msg)
         }
+    }
+
+    let stats = {
+        0 : ['danger','Very Low',20],
+        1 : ['danger','Low',35],
+        2 : ['warning','Medium',50],
+        3 : ['info','OK',75],
+        4 : ['success','Strong',100],
     }
 
     useEffect(() => {
@@ -76,6 +95,13 @@ const Queue = () => {
         return() => {clearTimeout(timeout)}
     },[name])
 
+
+    useEffect(() => {
+        let points = isGoodPassword(pass);
+        console.log(stats[points])
+        setPasstat(prev => stats[points])
+    },[pass])
+
     return (
         <Container style={{"maxWidth" : "470px",marginTop : "20px"}}>
             {!error ? '' : <Alert variant={"danger"} style={{"backgroundColor" : "rgb(69, 44, 47)",border : 0,color : "rgb(255, 181, 187)",marginTop : "10px"}}>{error}</Alert>}
@@ -88,9 +114,10 @@ const Queue = () => {
                </Form.Text>
                <Form.Label style={{"color" : "#eaeaea"}}>Enter your password.</Form.Label>
                 <Form.Control id={`getpass`} value={pass} maxLength={50} onChange={(e) => {setPass(e.target.value);}} type="password" placeholder="" disabled={ready}/>
-                <Form.Text className="text-muted">
-                The password that you will use.
-               </Form.Text>
+                <ProgressBar style={{"marginTop" : "15px"}}>
+                    
+                    <ProgressBar striped variant={passtat[0]} label={passtat[1]} now={passtat[2]} key={3} />
+                </ProgressBar>
 
                <div 
                onDragOver={(e) => {
