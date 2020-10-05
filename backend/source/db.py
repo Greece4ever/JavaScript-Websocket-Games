@@ -1,5 +1,8 @@
-import sqlite3,os,pprint,secrets.token_hex as hx,random.randint as rn
-    
+import sqlite3,os,pprint
+from secrets import token_hex as hx
+from random import  randint as rn
+from time import time as now
+
 class Database:
     def __init__(self):
         self.connection = sqlite3.connect('db.SQL')
@@ -18,10 +21,11 @@ class User:
     def __init__(self,db):
         self.db = db
         self.cursor = self.db.cursor
+        self.connection = self.db.connection
     
     def create(self,username,password,img):
         self.cursor.execute("""
-        INSERT INTO USER VALUES (?,?,?)
+        INSERT INTO USER VALUES (null,?,?,?)
         """,(username, password,img))
         self.connection.commit()
 
@@ -41,25 +45,27 @@ class User:
         tokens = self.cursor.execute("""
             SELECT * FROM TOKEN
             WHERE token=?
-        """,token)
-        return tokens is None
+        """,(token,)).fetchone()
+        print(tokens)
+        return tokens
 
     def generate_token(self):
         key = hx(rn(2,8))
-        while(self.token_exists(key)):
+        exists = self.token_exists(key)
+        while(exists):
             key = hx(rn(2,8))
         return key
 
     def create_token(self,user_id):
-        token = self.generate_token(user_id)
+        token = self.generate_token()
         usrs = self.cursor.execute("""
             SELECT * FROM USER
             WHERE id=?
-        """,user_id)
+        """,(user_id,)).fetchall()
         if usrs is None:
             return False
         self.cursor.execute("""
-            INSERT INTO TOKEN values (?,?)
+            INSERT INTO TOKEN values (null,?,?)
         """,(token,user_id))        
         self.connection.commit()
         return True
@@ -70,8 +76,41 @@ class User:
         WHERE name=?
         """,(username,))
 
+class Chat:
+    def __init__(self, database : Database):
+        self.db = database
+        self.cursor = self.db.cursor
+        self.connection = self.db.connection
+
+    def msg(self,user_id : int,msg : str):
+        self.cursor.execute("""
+            INSERT INTO MSG values (null,?,?)
+        """,(user_id,msg,))        
+        self.connection.commit()
+
+    def construct(self):
+        self.cursor.execute("""
+            INSERT INTO CHAT values(null,?)
+        """,(now()))
+
 if __name__ == "__main__":
     db = Database()
     users = User(db)
-    print(users.create("pakis","password","/path/to/img"))
-    print(users.id("pakis"))
+    chat = Chat(db)
+    
+    # users.create('pakis','password123','/peos/chat')
+    print(users.cursor.execute("""
+        SELECT * FROM USER
+    """).fetchall())
+    
+    userID = users.id("pakis").fetchone()[0]
+    # users.create_token(userID)
+    print(users.cursor.execute("""
+        SELECT * FROM TOKEN
+    """).fetchall())
+    
+    # chat.msg('1',"GOODBY WORLDdsa")
+    print(chat.cursor.execute("""
+        SELECT * FROM MSG
+    """).fetchall())
+
