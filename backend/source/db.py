@@ -38,14 +38,15 @@ class User:
         """,name,password)
 
     def token_exists(self,token):
-        self.cursor.execute("""
+        tokens = self.cursor.execute("""
             SELECT * FROM TOKEN
             WHERE token=?
         """,token)
+        return tokens is None
 
     def generate_token(self):
         key = hx(rn(2,8))
-        while(token_exists(key)):
+        while(self.token_exists(key)):
             key = hx(rn(2,8))
         return key
 
