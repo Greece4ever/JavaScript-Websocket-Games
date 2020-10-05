@@ -2,6 +2,12 @@ from darius.server.routes import SocketView,View
 import json,darius.client_side.status as status
 import pprint,os
 from PIL import Image
+from .sql import db
+
+DB_PATH = db.DB_PATH("database.db")
+
+Database = db.Database(DB_PATH)
+Users = db.User(Database)
 
 STATIC_FILES = os.path.join(
     os.getcwd(),"source","static",
@@ -36,35 +42,31 @@ class Drawing(SocketView):
 
         return {"name" : name,"img" : img}
 
-class AvatarUpload(View):
-    def POST(self,request,**kwargs):
-        if(len(request[-1]) > 2):
-            return status.HttpJson().__call__({"error" : "More than 2 form data was sent."},403)
+class UserCreation(View):
+    def POST(self, request, **kwargs):
+        username = request[1].get("username")
+        password = request[1].get("password")
+        avatar = request[1].get("avatar")
+
+
+        # One of the post data was none
+        if(None in (username,password,avatar)):
+            return status.HttpJson().__call__("Username or password or avatar was none, cannot proceed.",400)
+
+        Database.create_cursor()
+        print(Users.user_exists(username))
+
+        # if(not )
         
-        s_0 = 0
-        for item in request[-1]:
-            if('filename' in item):
-                s_0 += 1
-                img_name = item['filename']
-                try:
-                    img = Image.open(item['data'])
-                except:
-                    return status.HttpJson().__call__({"error" : "File was not identified as an image."},400)
-                img = img.resize((126,126))
-                img.save(s('avatars',img_name))
-            else:
-                s_0 += 1
-                name = item['data'].read()
-                name = name[1:len(name)-5]
+                # try:
+        #     img = img.open(avatar['data'])
+        # except:
+        #     return status.HttpJson().__call__("File was not identified as an image",400)
+        # img = img.resize((126,126))
 
-        if(s_0 != 2):
-            return status.HttpJson().__call__({"error" : "No Image or Username Was Provided."},400)
 
-        response = status.HttpJson().__call__({
-            "username" : name,
-            "img" : f"/static/avatars/{name}"
-        },200)
-        return response
+        # return status.HttpJson().__call__("hello world",200)
+        
 
 class StaticImageHandler(View):
     def GET(self,request,**kwargs):
