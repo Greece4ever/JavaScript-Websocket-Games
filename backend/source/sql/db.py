@@ -10,7 +10,7 @@ DB_PATH = lambda *paths : os.path.join(
 class Database:
     def __init__(self,db_name):
         self.db_name = db_name
-        self.connection = sqlite3.connect(db_name)
+        self.connection = sqlite3.connect(db_name,check_same_thread=False)
         self.cursor = [self.connection.cursor()] # Use as pointer
         SQL_PATH = DB_PATH("user.SQL")
         with open(SQL_PATH,'r') as f:
@@ -51,6 +51,10 @@ class User:
         stats = self.cursor[0].execute("""
             SELECT * FROM USER
             WHERE name=?""",(username,)).fetchone()
+
+        s = self.cursor[0].execute("""
+            SELECT * FROM USER""").fetchall()
+        print(s)
         return stats
 
     def token_exists(self,token):
@@ -58,7 +62,6 @@ class User:
             SELECT * FROM TOKEN
             WHERE token=?
         """,(token,)).fetchone()
-        print(tokens)
         return tokens
 
     def generate_token(self):

@@ -1,5 +1,6 @@
 from darius.server.routes import SocketView,View
 from darius.Parsing.http import AppendHeaders
+from darius.Parsing.http import decodeURI
 import json,darius.client_side.status as status
 import pprint,os
 from PIL import Image
@@ -9,6 +10,7 @@ DB_PATH = db.DB_PATH("database.db")
 
 Database = db.Database(DB_PATH)
 Users = db.User(Database)
+
 
 STATIC_FILES = os.path.join(
     os.getcwd(),"source","static",
@@ -43,6 +45,7 @@ class Drawing(SocketView):
         return {"name" : name,"img" : img}
 
 def AcessDB(view : callable):
+    """Decorator that allows access to the Database"""
     def wrapper(*args,**kwargs):
         Database.create_cursor()
         return view(*args,**kwargs)
@@ -50,14 +53,16 @@ def AcessDB(view : callable):
 
 class UserCreation(View):
 
-    @AcessDB
+    # @AcessDB
     def GET(self, request, **kwargs):
-        Database.create_cursor()
         username = request[0].get("username")
-        if(Users.user_exists(username)):
-            s = {"error" : "Username {} already exists.".format(username)}
-        else:
-            s = {'ok' : "Username {} is available".format(username)}
+        s = {'error' : "Could not parse username."}
+        if(username is not None):
+            username = decodeURI(username)
+            if(Users.user_exists(username)):
+                s = {"error" : "Username {} already exists.".format(username)}
+            else:
+                s = {'ok' : "Username {} is available".format(username)}
         response = status.HttpJson().__call__(s,200)
         response = AppendHeaders(response,{"Access-Control-Allow-Headers" : "username"})
         return response
@@ -65,46 +70,50 @@ class UserCreation(View):
     def OPTIONS(self, request, **kwargs):
         return self.GET(request, **kwargs)
 
+    # @AcessDB
     def POST(self, request, **kwargs):
         username = request[1].get("username")
         password = request[1].get("password")
         avatar = request[1].get("avatar")
-
-        pprint.pprint(username)
-        pprint.pprint(password)
     
         # One of the post data was none
         if(None in (username,password,avatar)):
             return status.HttpJson().__call__({"error" : "Username or password or avatar was none, cannot proceed."},400)
-
-        username = username['data'].read();__usr__ = len(username)
-        password = username['data'].read()
+        
+        # print(username,type(username))
+        username = username['data'].read()
+        __usr__ = len(username)
+        password = password['data'].read()
 
         if(__usr__ > 16):
             return status.HttpJson().__call__({"error" : "Username too long, must be at most 16 (not {}) ".format(__usr__)},400)   
 
-        if(1 < len(password) < 100):
+        cond : bool = 1 <= len(password) <= 100
+
+        if(not cond):
             return status.HttpJson().__call__({"error" : "Password too long, try changing it to something smaller"},400)   
 
-        if Users.user_exists(username['data'].read()):
+        if Users.user_exists(username):
             return status.HttpJson().__call__({"error" : "Username {} already exists.".format(username)},400)
 
         try:
-            img = Image.open(avatar['data'].read())
+            img = Image.open(avatar['data'])
             img = img.resize((128,128))
-            path = s(db.hx(db.rn(2,12)))
+            img_hash = db.hx(db.rn(2,12))
+            s_path =  img_hash + "." + avatar['filename'].split(".")[-1]
+            path = s(img_hash) + "." + avatar['filename'].split(".")[-1]
             img.save(path)
-        except:
+        except Exception:
             return status.HttpJson().__call__({'error' : "Could not identify file {} as an image.".format(avatar['filename'])},400)
 
-        Users.create(username,password,f'static/avatars/{path}')
+        Users.create(username,password,f'static/avatars/{s_path}')
         token = Users.create_token(
-            Users.id(username)
+            str(Users.id(username))
         )
         return status.HttpJson().__call__({
             "username" : username,
             "password" : password,
-            "img" : f'static/avatars/{path}',
+            "img" : f'static/avatars/{s_path}',
             "token" : token
         },200)
 

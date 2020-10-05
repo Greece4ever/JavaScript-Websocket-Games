@@ -25,19 +25,20 @@ const CreateUser = (name,password,avatar) => {
 }
 
 const checkUsername = (name) => {
+    console.log(encodeURI(name))
     return axios.get(domain("http",8000) + "/users/create",{
         headers : {
-            "username" : name,
+            "username" : encodeURI(name),
         }
     })
 }
 
 const isGoodPassword = (password) => {
     let points = 0;
-    let w_reg = /\w+/;
+    let w_reg = /[a-zA-Z]+/;
     if(password.length > 8) points+=1; // More than 8 charachters
     if((/\d+/).test(password) && (w_reg).test(password)) points +=1; // Characters and numbers
-    if((/^[A-Z \d\W]+/).test(password) && (w_reg).test(password)) points +=1; // Both Lower and Upper case
+    if((/^[A-Z \d\W]+/).test(password) && (/\w+/).test(password)) points +=1; // Both Lower and Upper case
     if((/\W+/).test(password)) points +=1;
     return points;
 }
@@ -60,21 +61,15 @@ const Queue = () => {
     const handleSubmit = async () => {
         try{
             const response = await CreateUser(name,pass,img);
-            console.log(response);
+            if(response.data.error){
+                localStorage.setItem("DARIUSESSIONID",response.data.token)
+            }
         }
         catch(e) {
             let msg = "File too Large, must be below 2MB.";
             if(e.response) msg = e.response.data.error
             setError(msg)
         }
-    }
-
-    let stats = {
-        0 : ['danger','Very Low',20],
-        1 : ['danger','Low',35],
-        2 : ['warning','Medium',50],
-        3 : ['info','OK',75],
-        4 : ['success','Strong',100],
     }
 
     useEffect(() => {
@@ -95,10 +90,16 @@ const Queue = () => {
         return() => {clearTimeout(timeout)}
     },[name])
 
+    let stats = {
+        0 : ['danger','Very Low',25],
+        1 : ['danger','Low',35],
+        2 : ['warning','Medium',50],
+        3 : ['info','OK',75],
+        4 : ['success','Strong',100],
+    }
 
     useEffect(() => {
         let points = isGoodPassword(pass);
-        console.log(stats[points])
         setPasstat(prev => stats[points])
     },[pass])
 
@@ -116,7 +117,7 @@ const Queue = () => {
                 <Form.Control id={`getpass`} value={pass} maxLength={50} onChange={(e) => {setPass(e.target.value);}} type="password" placeholder="" disabled={ready}/>
                 <ProgressBar style={{"marginTop" : "15px"}}>
                     
-                    <ProgressBar striped variant={passtat[0]} label={passtat[1]} now={passtat[2]} key={3} />
+                    <ProgressBar animated  striped variant={passtat[0]} label={passtat[1]} now={passtat[2]} key={3} />
                 </ProgressBar>
 
                <div 
