@@ -24,18 +24,27 @@ const CreateUser = (name,password,avatar) => {
     })
 }
 
+const checkUsername = (name) => {
+    return axios.get(domain("http",8000) + "/users/create",{
+        headers : {
+            "username" : name,
+        }
+    })
+}
+
 const Queue = () => {
     useEffect(() => {document.body.style.backgroundColor = "#333b52"});
     const [name,setName] = useState("");
     const [ready,setReady] = useState(false);
-    const [cdata,setCDATA] = useState(false)
     const [error,setError] = useState(false);
-    const spinner = <Spinner animation="border" variant="primary" role="status" style={{"width" : "200px","height" : "200px"}}><span className="sr-only">Loading...</span></Spinner>;
-    let MAX_PLAYERS = 2;
     const [move,setMove] = useState(false);
     const [opacity,setOpacity] = useState(1);
     const [img,setImg] = useState();
     const [pass,setPass] = useState("");
+    const [spinner,setSpiner] = useState('');
+
+    let ok = <svg style={{"color" : "#44d6af",marginLeft : "10px"}} width="1em" height="1em" viewBox="0 0 16 16" className="bi bi-bookmark-check-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M4 0a2 2 0 0 0-2 2v13.5a.5.5 0 0 0 .74.439L8 13.069l5.26 2.87A.5.5 0 0 0 14 15.5V2a2 2 0 0 0-2-2H4zm6.854 5.854a.5.5 0 0 0-.708-.708L7.5 7.793 6.354 6.646a.5.5 0 1 0-.708.708l1.5 1.5a.5.5 0 0 0 .708 0l3-3z"/></svg>;
+    let spin = <Spinner style={{"width" : "1em",height:"1em",marginLeft : "10px"}} animation="border" />
 
     const handleSubmit = async () => {
         try{
@@ -49,12 +58,30 @@ const Queue = () => {
         }
     }
 
+    useEffect(() => {
+        if(!move) {setMove(true);return () => {}} // Do not send ajax on first render
+        setSpiner(spin);
+        const timeout = setTimeout(() => {
+            checkUsername(name).then(response => {
+                let err = response.data.error;
+                setSpiner('');
+                if(err){
+                    setError(err);
+                    return () => {}
+                } else {
+                    setSpiner(ok)
+                }
+            })
+        },1500)
+        return() => {clearTimeout(timeout)}
+    },[name])
+
     return (
         <Container style={{"maxWidth" : "470px",marginTop : "20px"}}>
             {!error ? '' : <Alert variant={"danger"} style={{"backgroundColor" : "rgb(69, 44, 47)",border : 0,color : "rgb(255, 181, 187)",marginTop : "10px"}}>{error}</Alert>}
             <Form onSubmit={(e) => {e.preventDefault();handleSubmit(e)}}>
             <Form.Group>
-                <Form.Label style={{"color" : "#eaeaea"}}>Enter your Username.</Form.Label>
+                <Form.Label style={{"color" : "#eaeaea"}}>Enter your Username. <span>{spinner}</span></Form.Label>
                 <Form.Control id={`usr`} value={name} maxLength={16} onChange={(e) => {setName(handleAscii(e.target.value));}} type="text" placeholder="" disabled={ready}/>
                 <Form.Text className="text-muted">
                 The username that will be used.
@@ -97,10 +124,7 @@ const Queue = () => {
                     Continue
                 </Button>
             </div>
-
             </Form>
-    {/* {move ?   <div style={{marginTop : "100px",'textAlign' : "center",fontFamily : "sans-serif"}}>{spinner}<label style={{"color" : "#eae2e2",marginTop : "20px"}}>Moving to <b style={{"color" : "#eae2e2"}}>{move}</b>.</label></div> :  
-            !ready ?  '' : <div style={{marginTop : "100px",'textAlign' : "center",fontFamily : "sans-serif"}}>{spinner}<label style={{"color" : "#eae2e2",marginTop : "20px"}}> Waiting for <b style={{"color" : "#007bff"}}>{MAX_PLAYERS-cdata-1} </b> more players to connect on game <b style={{"color" : "#007bff"}}>{game}</b>.</label></div>} */}
         </Container>
     )
 }
