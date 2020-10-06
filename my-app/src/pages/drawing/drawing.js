@@ -2,13 +2,13 @@
 // import {BrowserRouter as Router,Route, Switch} from 'react-router-dom'
 import React,{useEffect,useState} from "react"
 import "./base.css"
-import {Form,Container} from "react-bootstrap"
+import {Form,OverlayTrigger,Popover} from "react-bootstrap"
 import 'bootstrap/dist/css/bootstrap.min.css';
 import useAuthentication from "../authentication";
-import {useHistory} from 'react-router-dom';
+import Display from "./user_display";
 
+// TODO ----> https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
 
-// https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
 
 export default function Drawing() {
   const authentication = useAuthentication();
@@ -27,33 +27,38 @@ export default function Drawing() {
   });
   const [undo,setUndo] = useState(false);
   const [socket,setSocket] = useState();
-
-  const handleConnect = (kwargs) => {
-  }
+  const [players,setPlayers] = useState([]);
 
   useEffect(() => {
     let PORT = 8000;
     const socket = new WebSocket(`ws://${window.location.hostname}:${PORT}/drawing`);
     setSocket(socket);
 
-    socket.onConnect = () => {
-      console.log("Connected")
-    }
+    socket.onConnect = () => {}
 
     socket.onmessage = (msg) => {
       let data = JSON.parse(msg.data)
-      if(data.type=='connected') return handleConnect(data); 
+
+      // Handle New Connection
+      if(data.type == 'connect') {
+        setPlayers(prev => [...prev,{
+          "username" : data.username,
+          "img" : data.img,
+          "score" : data.score
+        }])
+        return;}
+
       const canvas = document.getElementById("canvas");
       let ctx = canvas.getContext("2d");  
       ctx.lineCap = "round";
       ctx.lineWidth = data[2];
       ctx.strokeStyle  = data[3];
-      let [x,y] = [data[0],data[1]]
+      let [x,y] = [data[0],data[1]];
       ctx.lineTo(x,y);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(x-caligraphy,y-caligraphy)
-      canvas.getContext("2d").beginPath()
+      ctx.moveTo(x-caligraphy,y-caligraphy);
+      canvas.getContext("2d").beginPath();
     }
 
     socket.onclose = () => {
@@ -69,16 +74,6 @@ export default function Drawing() {
   useEffect(() => {
     const canvas = document.getElementById("canvas");
     canvas.setAttribute("tabindex", 0);
-    // let ctx = canvas.getContext("2d");
-    // ctx.lineCap = "round";
-    // ctx.lineWidth = diff;
-    // // ctx.moveTo(e.clientX-diff,e.clientY-diff);
-
-    // tmp.forEach(cords => {
-      // ctx.lineTo(...cords)
-      // ctx.stroke();
-      // ctx.beginPath();  
-    // })
   })
 
   const clearCanvas = () => {
@@ -111,7 +106,6 @@ export default function Drawing() {
   useEffect(() => {
     redraw();    
   },[undo])
-
 
   // Draw on Screen
   const handleMove = (e) => { 
@@ -200,15 +194,15 @@ export default function Drawing() {
   return (
     <div>
       <div style={{"marginLeft" : "20px",marginTop : "10px"}}>
-        <img style={{"width" : "64px",border : "1px solid #dcd1d1"}} src={"http://localhost:8000/static/avatars/af44b2.png"}></img>
+        <Display username="Greece4ever" score='0' image='http://localhost:8000/static/avatars/af44b2.png' />
         <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
-      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px"}} onKeyDown={e => handleKeyPress(e)}
+      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",width : "70%",height : "600px"}} onKeyDown={e => handleKeyPress(e)}
        onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
        onKeyDown={(e) => handleKeyDown(e)} 
        onKeyUp={(e) => handleKeyUp(e)}
        onMouseDown={() => setDrawing(true)} 
-       onMouseMove={(e) => {handleMove(e)}} width={800} height={500} id="canvas"></canvas>
+       onMouseMove={(e) => {handleMove(e)}} id="canvas"></canvas>
       <div style={{"float" : "right",resize : "none",marginRight : "50px"}}>
         <div className={"css"} style={{height : "421px",width : "200px",backgroundColor : "transparent"}}>
         </div>

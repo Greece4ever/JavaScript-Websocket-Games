@@ -99,9 +99,7 @@ class UserIdentify(View):
 
     @AllowHeaders("key")
     def OPTIONS(self, request, **kwargs):
-        pprint.pprint(request)
         cors_headers = request[0].get("Access-Control-Request-Headers")
-        print(cors_headers)
         if(cors_headers=='key'):
             return status.HttpJson().__call__({"hey" : "world"},200)
 
