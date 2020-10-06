@@ -2,14 +2,16 @@
 // import {BrowserRouter as Router,Route, Switch} from 'react-router-dom'
 import React,{useEffect,useState} from "react"
 import "./base.css"
-import {Form} from "react-bootstrap"
+import {Form,OverlayTrigger,Popover} from "react-bootstrap"
 import 'bootstrap/dist/css/bootstrap.min.css';
+import useAuthentication from "../authentication";
+import Display from "./user_display";
 
-
-// https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
+// TODO ----> https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
 
 
 export default function Drawing() {
+  const authentication = useAuthentication();
   const [drawing,setDrawing] = useState(false);
   const [LineWidth,setLineWidth] = useState(10);
   const [caligraphy,setCaligrapgy] = useState(0);
@@ -24,22 +26,54 @@ export default function Drawing() {
     67 : () => {let pick = document.getElementById("pick");pick.style.visibility = "visible";pick.click();pick.style.visibility = "hidden";}
   });
   const [undo,setUndo] = useState(false);
+  const [socket,setSocket] = useState();
+  const [players,setPlayers] = useState([]);
+
+  useEffect(() => {
+    let PORT = 8000;
+    const socket = new WebSocket(`ws://${window.location.hostname}:${PORT}/drawing`);
+    setSocket(socket);
+
+    socket.onConnect = () => {}
+
+    socket.onmessage = (msg) => {
+      let data = JSON.parse(msg.data)
+
+      // Handle New Connection
+      if(data.type == 'connect') {
+        setPlayers(prev => [...prev,{
+          "username" : data.username,
+          "img" : data.img,
+          "score" : data.score
+        }])
+        return;}
+
+      const canvas = document.getElementById("canvas");
+      let ctx = canvas.getContext("2d");  
+      ctx.lineCap = "round";
+      ctx.lineWidth = data[2];
+      ctx.strokeStyle  = data[3];
+      let [x,y] = [data[0],data[1]];
+      ctx.lineTo(x,y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x-caligraphy,y-caligraphy);
+      canvas.getContext("2d").beginPath();
+    }
+
+    socket.onclose = () => {
+      console.log("closed")
+    }
+
+    socket.onerror = () => {
+      console.log("error")
+    }
+
+  },[])
 
   useEffect(() => {
     const canvas = document.getElementById("canvas");
     canvas.setAttribute("tabindex", 0);
-    // let ctx = canvas.getContext("2d");
-    // ctx.lineCap = "round";
-    // ctx.lineWidth = diff;
-    // // ctx.moveTo(e.clientX-diff,e.clientY-diff);
-
-    // tmp.forEach(cords => {
-      // ctx.lineTo(...cords)
-      // ctx.stroke();
-      // ctx.beginPath();  
-    // })
-    
-
   })
 
   const clearCanvas = () => {
@@ -73,7 +107,6 @@ export default function Drawing() {
     redraw();    
   },[undo])
 
-
   // Draw on Screen
   const handleMove = (e) => { 
     const canvas = document.getElementById("canvas");
@@ -92,6 +125,7 @@ export default function Drawing() {
       return;
     }
     ctx.lineTo(x,y);
+    socket.send(JSON.stringify([x,y,LineWidth,color]))
     setPaths(prev => [...prev,[x,y,LineWidth,color]])
     ctx.stroke();
     ctx.beginPath();
@@ -159,20 +193,27 @@ export default function Drawing() {
 
   return (
     <div>
-      <div>
+      <div style={{"marginLeft" : "20px",marginTop : "10px"}}>
+        <Display username="Greece4ever" score='0' image='http://localhost:8000/static/avatars/af44b2.png' />
         <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
-      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px"}} onKeyDown={e => handleKeyPress(e)}
+      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",width : "70%",height : "600px"}} onKeyDown={e => handleKeyPress(e)}
        onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
        onKeyDown={(e) => handleKeyDown(e)} 
        onKeyUp={(e) => handleKeyUp(e)}
        onMouseDown={() => setDrawing(true)} 
-       onMouseMove={(e) => {handleMove(e)}} width={800} height={500} id="canvas"></canvas>
+       onMouseMove={(e) => {handleMove(e)}} id="canvas"></canvas>
       <div style={{"float" : "right",resize : "none",marginRight : "50px"}}>
         <div className={"css"} style={{height : "421px",width : "200px",backgroundColor : "transparent"}}>
         </div>
         <Form.Group style={{"marginTop" : "30px"}}  controlId="exampleForm.ControlTextarea1">
-          <Form.Control style={{"resize" : "none","maxHeight" : "50px"}} as="textarea" rows="3" />
+          <Form.Control onKeyDown={(e) => {
+            if(e.key==='Enter' || e.keyCode===13 || e.which===13){
+              e.preventDefault();
+              socket.send(e.target.value)
+            }
+
+          }} style={{"resize" : "none","maxHeight" : "50px"}} as="textarea" rows="3" />
         </Form.Group>
       </div>
       <div>
@@ -181,5 +222,4 @@ export default function Drawing() {
       {/* <button onClick={() => console.log(paths)}>printf</button> */}
     </div>
   );
-}
-
+};
