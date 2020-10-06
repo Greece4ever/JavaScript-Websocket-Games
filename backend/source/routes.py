@@ -1,7 +1,8 @@
 from . import views
+from . import websockets
 
 sock_url_patterns = {
-    r"/drawing(\/)?" : views.Drawing()
+    r"/drawing" : websockets.Drawing()
 }
 
 rest_api_patterns = {

@@ -54,21 +54,25 @@ const Queue = () => {
     const [pass,setPass] = useState("");
     const [spinner,setSpiner] = useState('');
     const [passtat,setPasstat] = useState(['danger','Very Low',25])
+    const [win,setWin] = useState(false);
 
     let ok = <svg style={{"color" : "#44d6af",marginLeft : "10px"}} width="1em" height="1em" viewBox="0 0 16 16" className="bi bi-bookmark-check-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M4 0a2 2 0 0 0-2 2v13.5a.5.5 0 0 0 .74.439L8 13.069l5.26 2.87A.5.5 0 0 0 14 15.5V2a2 2 0 0 0-2-2H4zm6.854 5.854a.5.5 0 0 0-.708-.708L7.5 7.793 6.354 6.646a.5.5 0 1 0-.708.708l1.5 1.5a.5.5 0 0 0 .708 0l3-3z"/></svg>;
     let spin = <Spinner style={{"width" : "1em",height:"1em",marginLeft : "10px"}} animation="border" />
 
     const handleSubmit = async () => {
         try{
+            setError('');
             const response = await CreateUser(name,pass,img);
-            if(response.data.error){
-                localStorage.setItem("DARIUSESSIONID",response.data.token)
+            if(!response.data.error){
+                document.cookie = `DARIUSESSIONID=${response.data.token}`;
+                setWin(response.data.username);
             }
         }
         catch(e) {
             let msg = "File too Large, must be below 2MB.";
-            if(e.response) msg = e.response.data.error
-            setError(msg)
+            if(e.response) msg = e.response.data.error;
+            setWin(false);
+            setError(msg);
         }
     }
 
@@ -106,6 +110,7 @@ const Queue = () => {
     return (
         <Container style={{"maxWidth" : "470px",marginTop : "20px"}}>
             {!error ? '' : <Alert variant={"danger"} style={{"backgroundColor" : "rgb(69, 44, 47)",border : 0,color : "rgb(255, 181, 187)",marginTop : "10px"}}>{error}</Alert>}
+            {!win ? '' :  <Alert variant={"success"} style={{marginTop : "10px"}}>Sucessfuly created account for {win}.</Alert>}
             <Form onSubmit={(e) => {e.preventDefault();handleSubmit(e)}}>
             <Form.Group>
                 <Form.Label style={{"color" : "#eaeaea"}}>Enter your Username. <span>{spinner}</span></Form.Label>

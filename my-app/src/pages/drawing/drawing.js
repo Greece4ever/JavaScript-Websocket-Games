@@ -24,33 +24,40 @@ export default function Drawing() {
   });
   const [undo,setUndo] = useState(false);
   const [socket,setSocket] = useState();
-  const [enter,setEnter] = useState(false)
-  const [cords,setCords] = useState([50,50])
 
-  // useEffect(() => {
-  //   let port = 8000;
-  //   const socket = new WebSocket(`ws://${window.location.host}:${PORT}/drawing`);
-  //   setSocket(socket);
-  // },[])
+  useEffect(() => {
+    let PORT = 8000;
+    const socket = new WebSocket(`ws://${window.location.hostname}:${PORT}/drawing`);
+    setSocket(socket);
 
-  // useEffect(() => {
-  //   socket.onConnect = () => {
-  //     console.log("Connected")
-  //   }
+    socket.onConnect = () => {
+      console.log("Connected")
+    }
 
-  //   socket.onmessage = () => {
-  //     console.log("msg")
-  //   }
+    socket.onmessage = (msg) => {
+      let data = JSON.parse(msg.data)
+      const canvas = document.getElementById("canvas");
+      let ctx = canvas.getContext("2d");  
+      ctx.lineCap = "round";
+      ctx.lineWidth = data[2];
+      ctx.strokeStyle  = data[3];
+      let [x,y] = [data[0],data[1]]
+      ctx.lineTo(x,y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x-caligraphy,y-caligraphy)
+      canvas.getContext("2d").beginPath()
+    }
 
-  //   socket.onclose = () => {
-  //     console.log("closed")
-  //   }
+    socket.onclose = () => {
+      console.log("closed")
+    }
 
-  //   socket.onerror = () => {
-  //     console.log("error")
-  //   }
+    socket.onerror = () => {
+      console.log("error")
+    }
 
-  // })
+  },[])
 
   useEffect(() => {
     const canvas = document.getElementById("canvas");
@@ -117,6 +124,7 @@ export default function Drawing() {
       return;
     }
     ctx.lineTo(x,y);
+    socket.send(JSON.stringify([x,y,LineWidth,color]))
     setPaths(prev => [...prev,[x,y,LineWidth,color]])
     ctx.stroke();
     ctx.beginPath();
@@ -206,5 +214,4 @@ export default function Drawing() {
       {/* <button onClick={() => console.log(paths)}>printf</button> */}
     </div>
   );
-}
-
+};

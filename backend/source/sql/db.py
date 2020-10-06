@@ -1,4 +1,4 @@
-import sqlite3,os,pprint
+import sqlite3,os
 from secrets import token_hex as hx
 from random import  randint as rn
 from time import time as now
@@ -51,10 +51,6 @@ class User:
         stats = self.cursor[0].execute("""
             SELECT * FROM USER
             WHERE name=?""",(username,)).fetchone()
-
-        s = self.cursor[0].execute("""
-            SELECT * FROM USER""").fetchall()
-        print(s)
         return stats
 
     def token_exists(self,token):
@@ -65,7 +61,7 @@ class User:
         return tokens
 
     def generate_token(self):
-        key = hx(rn(2,8))
+        key = hx(rn(6,16))
         exists = self.token_exists(key)
         while(exists):
             key = hx(rn(2,8))
@@ -73,6 +69,8 @@ class User:
 
     def create_token(self,user_id):
         token = self.generate_token()
+        if user_id is None:
+            return
         usrs = self.cursor[0].execute("""
             SELECT * FROM USER
             WHERE id=?
@@ -81,7 +79,7 @@ class User:
             return False
         self.cursor[0].execute("""
             INSERT INTO TOKEN values (null,?,?)
-        """,(token,user_id))        
+        """,(token,user_id))
         self.connection.commit()
         return token
 
@@ -89,7 +87,7 @@ class User:
         return self.cursor[0].execute("""
         SELECT id FROM USER
         WHERE name=?
-        """,(username,))
+        """,(username,)).fetchone()
 
 class Chat:
     def __init__(self, database : Database):
@@ -110,24 +108,4 @@ class Chat:
         return self.cursor.lastrowid
 
 if __name__ == "__main__":
-    db = Database()
-    users = User(db)
-    chat = Chat(db)
-    
-    # users.create('pakis','password123','/peos/chat')
-    print(users.cursor.execute("""
-        SELECT * FROM USER
-    """).fetchall())
-    
-    # userID = users.id("pakis").fetchone()[0]
-    # users.create_token(userID)
-    print(users.cursor.execute("""
-        SELECT * FROM TOKEN
-    """).fetchall())
-    
-    # chat.msg('1',"GOODBY WORLDdsa")
-    print(chat.cursor.execute("""
-        SELECT * FROM MSG
-    """).fetchall())
-
-    print(chat.construct())
+    pass
