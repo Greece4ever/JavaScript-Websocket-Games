@@ -12,7 +12,7 @@ const Display = (props) => {
 
     return(
         <OverlayTrigger trigger="click" placement="right" overlay={overlay}>
-          <img style={{"width" : "64px",border : "1px solid #dcd1d1",cursor : "pointer"}} src={props.image}></img>
+          <img style={{"width" : "64px",border : `3px solid ${props.color}`,cursor : "pointer",marginLeft : props.m_left}} src={props.image}></img>
         </OverlayTrigger>
     )
 }
