@@ -1,27 +1,56 @@
 from darius.server.routes import SocketView
-import pprint
+from .views import Users
+from random import randrange
+import pprint,json,datetime
 
 class Drawing(SocketView):
     def onConnect(self,client,**kwargs):
-        # self.accept(client,kwargs.get("key"))
         self.accept(client)
-        self.send(client,"Hello world!")
+        cookies = kwargs.get("headers").get("Cookie")
+        if type(cookies) == list:
+            for c in cookies:
+                if('DARIUSESSIONID' in c):
+                    id = c.split("=")[-1]
+                    usr = Users.fetchUser(id)
+                    if(usr is None):
+                        return False
+                    break
+            else:
+                return False
+        else:
+            if('DARIUSESSIONID' in cookies):
+                id = cookies.split("=")[-1]
+                usr = Users.fetchUser(id)
+                if(usr is None):
+                    return False
+
+        config = {
+            'type' : 0,
+            'score' : 0,
+            'id' : usr[0],
+            'username' : usr[1],
+            'img' : usr[2],
+            'color' : [randrange(1,255) for _ in range(3)]
+        }
+        
+        json_config = json.dumps(config)
+
+        self.send(client,json_config)
         for cli in self.clients:
-            self.send(cli,"Hello world!")
+            self.send(cli,json_config)
 
-        return 1
-        # cookie = kwargs.get("headers").get("Cookie")
-        # for c in cookie:
-        #     if('DARIUSESSIONID' in cookie):
-        #         key = c.split("=")[-1]
-        # if(cookie is None): return
+        config.pop('type')
+        return config
 
-    # def onMessage(self,**kwargs):
-    #     clients = kwargs.get("path_info")['clients']
-    #     data = kwargs.get("data")
-    #     send = kwargs.get('send_function') 
-    #     for client in clients:
-    #         send(client,kwargs.get("data"))
+    def onMessage(self,**kwargs):
+        data = kwargs.get("data")
+        data = json.loads(data)
+        now = datetime.datetime.now()
+        sender_client = kwargs.get("sender_client")
+        data_to_send = {**data,**self.clients.get(sender_client),'date' : f'{now.hour}:{now.minute}'}
+        str_data : str = json.dumps(data_to_send)
+        for client in self.clients:
+            self.send(client, json.dumps(str_data))
 
     def onExit(self, client , **kwargs):    
-        5+'5'
+        pass

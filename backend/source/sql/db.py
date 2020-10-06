@@ -50,7 +50,7 @@ class User:
         if token is None: return False
         user_id = token[0]
         user = self.cursor[0].execute("""
-            SELECT name,img FROM USER
+            SELECT id,name,img FROM USER
             WHERE id=? 
         """,(user_id,)).fetchone()
         return user

@@ -2,16 +2,17 @@
 // import {BrowserRouter as Router,Route, Switch} from 'react-router-dom'
 import React,{useEffect,useState} from "react"
 import "./base.css"
-import {Form,OverlayTrigger,Popover} from "react-bootstrap"
+import {Form,Container} from "react-bootstrap"
 import 'bootstrap/dist/css/bootstrap.min.css';
 import useAuthentication from "../authentication";
 import Display from "./user_display";
+import gradient from "./gradient.png";
 
 // TODO ----> https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
 
 
 export default function Drawing() {
-  const authentication = useAuthentication();
+  useAuthentication();
   const [drawing,setDrawing] = useState(false);
   const [LineWidth,setLineWidth] = useState(10);
   const [caligraphy,setCaligrapgy] = useState(0);
@@ -28,6 +29,20 @@ export default function Drawing() {
   const [undo,setUndo] = useState(false);
   const [socket,setSocket] = useState();
   const [players,setPlayers] = useState([]);
+  const [msgs,setMSG] = useState([]);
+
+  const drawData = (x,y,lineWidth,strokeStyle) => {
+    const canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");  
+    ctx.lineCap = "round";
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle  = strokeStyle;
+    ctx.lineTo(x,y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x-caligraphy,y-caligraphy);
+    canvas.getContext("2d").beginPath();
+  } 
 
   useEffect(() => {
     let PORT = 8000;
@@ -37,28 +52,30 @@ export default function Drawing() {
     socket.onConnect = () => {}
 
     socket.onmessage = (msg) => {
-      let data = JSON.parse(msg.data)
+      let data =  JSON.parse(msg.data)
+      if(typeof(data)==='string') data = JSON.parse(data);
+
+      if(data.type===2) {
+        let d = data.value;
+        drawData(d[0],d[1],d[2],d[3]);
+        return;
+      }
 
       // Handle New Connection
-      if(data.type == 'connect') {
+      if(data.type === 0) {
+        let color = data.color
         setPlayers(prev => [...prev,{
           "username" : data.username,
           "img" : data.img,
-          "score" : data.score
+          "score" : data.score,
+          "color" : `rgba(${color[0]},${color[1]},${color[2]},0.4)`
         }])
         return;}
+      
+      else if(data.type === 1) {
+        setMSG(prev => [...prev,data])
+      }
 
-      const canvas = document.getElementById("canvas");
-      let ctx = canvas.getContext("2d");  
-      ctx.lineCap = "round";
-      ctx.lineWidth = data[2];
-      ctx.strokeStyle  = data[3];
-      let [x,y] = [data[0],data[1]];
-      ctx.lineTo(x,y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x-caligraphy,y-caligraphy);
-      canvas.getContext("2d").beginPath();
     }
 
     socket.onclose = () => {
@@ -107,6 +124,7 @@ export default function Drawing() {
     redraw();    
   },[undo])
 
+
   // Draw on Screen
   const handleMove = (e) => { 
     const canvas = document.getElementById("canvas");
@@ -117,7 +135,7 @@ export default function Drawing() {
     ctx.lineCap = "round";
     ctx.lineWidth = LineWidth;
     ctx.strokeStyle  = color;
-    let [x,y] = [e.clientX-10,e.clientY-20]
+    let [x,y] = [e.clientX-20,e.clientY-80]
     if(keys){
       ctx.beginPath();
       ctx.arc(x, y, 50, 0, 2 * Math.PI);
@@ -125,11 +143,13 @@ export default function Drawing() {
       return;
     }
     ctx.lineTo(x,y);
-    socket.send(JSON.stringify([x,y,LineWidth,color]))
-    setPaths(prev => [...prev,[x,y,LineWidth,color]])
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(x-caligraphy,y-caligraphy)
+    socket.send(JSON.stringify(
+      {type : 2, value : [x,y,LineWidth,color]}
+      ))
+
     // console.log(paths)
   }
 
@@ -191,35 +211,79 @@ export default function Drawing() {
     }
   }
 
+  useEffect(() => {
+
+  })
+
   return (
-    <div>
+    <Container style={{maxWidth: "1500px"}} >
       <div style={{"marginLeft" : "20px",marginTop : "10px"}}>
-        <Display username="Greece4ever" score='0' image='http://localhost:8000/static/avatars/af44b2.png' />
+        {players.map(player => (
+          <Display m_left={players.indexOf(player)==0 ? 0 : '10px'} color={player.color} username={player.username} score={player.score} image={`http://localhost:8000/${player.img}`} />
+        ))}
         <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
-      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",width : "70%",height : "600px"}} onKeyDown={e => handleKeyPress(e)}
+      <div class="css" style={{float : "left",height : "600px",width : "300px",marginLeft : "20px",marginTop : "10px",position : "relative"}}>
+        <img src={gradient}></img>
+        <div style={{"width" : "50px",height : "50px",backgroundColor : "red",position : "absolute"}} draggable
+        onDrag={(e) => {
+          let elm = e.currentTarget;
+          elm.style.left = `${e.clientX-80}px`
+          elm.style.top = `${e.clientY-100}px`
+        }}
+        onDrop={(e) => {
+          let elm = e.currentTarget;
+          elm.style.left = `${e.clientX}px`
+          elm.style.top = `${e.clientY}px`
+        }}
+        ></div>
+        {/* <input onLoad={(e) => {console.log("loaded")}} id={'color_changer'} onChange={(e) => {setColor(e.target.value)}} id="pick" 
+        style={{
+        "backgroundColor" : "transparent",
+        position : "absolute",
+        width : "50px !important",
+        left : "10%",
+        bottom : "50%"
+        }} type="color"></input> */}
+      </div>
+
+      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",backgroundColor : "aliceblue"}} onKeyDown={e => handleKeyPress(e)}
        onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
        onKeyDown={(e) => handleKeyDown(e)} 
        onKeyUp={(e) => handleKeyUp(e)}
        onMouseDown={() => setDrawing(true)} 
-       onMouseMove={(e) => {handleMove(e)}} id="canvas"></canvas>
+       onMouseMove={(e) => {handleMove(e)}} width={800} height={600} id="canvas"></canvas>
       <div style={{"float" : "right",resize : "none",marginRight : "50px"}}>
         <div className={"css"} style={{height : "421px",width : "200px",backgroundColor : "transparent"}}>
+          {msgs.map(m => (
+            <div>
+              <label className={"text-muted"}>{m.date}&nbsp;</label>
+              <label style={{"color" : `rgba(${m.color[0]},${m.color[1]},${m.color[2]})`}}>{m.username}</label>
+              <label>&nbsp;:&nbsp;</label>
+              <label>{m.value}</label>
+            </div>
+          ))}
         </div>
         <Form.Group style={{"marginTop" : "30px"}}  controlId="exampleForm.ControlTextarea1">
           <Form.Control onKeyDown={(e) => {
             if(e.key==='Enter' || e.keyCode===13 || e.which===13){
               e.preventDefault();
-              socket.send(e.target.value)
-            }
-
-          }} style={{"resize" : "none","maxHeight" : "50px"}} as="textarea" rows="3" />
+              socket.send(JSON.stringify({"type" : 1,'value' : e.target.value}))}}} 
+              style={{"resize" : "none","maxHeight" : "50px",        
+              background : "radial-gradient(#07071e, transparent)",
+              backgroundColor : "#2e343a",
+              border : "1px solid #333b52"}} as="textarea" rows="3" />
         </Form.Group>
       </div>
       <div>
-        <input onChange={(e) => {setColor(e.target.value)}} id="pick" style={{"backgroundColor" : "transparent",border : "0",height : "0px",width : "0px",position : "fixed","visibility" : "hidden"}} type="color"></input>
+        <input onChange={(e) => {setColor(e.target.value)}} id="pick" 
+        style={{"backgroundColor" : "transparent",
+        border : "0",height : "0px",width : "0px",
+        position : "fixed","visibility" : "hidden",
+        }} type="color"></input>
       </div>
+
       {/* <button onClick={() => console.log(paths)}>printf</button> */}
-    </div>
+    </Container>
   );
 };

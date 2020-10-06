@@ -78,10 +78,11 @@ class UserCreation(View):
 
         try:
             img = Image.open(avatar['data'])
-            img = img.resize((128,128))
+            img = img.thumbnail((128,128), Image.ANTIALIAS)
+            # img = img.resize((128,128))
             img_hash = db.hx(db.rn(2,12))
             s_path =  img_hash + "." + avatar['filename'].split(".")[-1]
-            path = s(img_hash) + "." + avatar['filename'].split(".")[-1]
+            path = s('avatars',img_hash) + "." + avatar['filename'].split(".")[-1]
             img.save(path)
         except Exception:
             return status.HttpJson().__call__({'error' : "Could not identify file {} as an image.".format(avatar['filename'])},400)
@@ -114,6 +115,7 @@ class UserIdentify(View):
 class StaticImageHandler(View):
     def GET(self,request,**kwargs):
         target_path = j(os.getcwd(),"source",*request[0].get("uri").split("/"))
+        print(target_path)
         if(os.path.exists(target_path)):
             return status.HttpBinary().__call__(target_path,200,display_in_browser=True)
         return status.HttpJson().__call__({'error' : "404 Not Found"},404)
