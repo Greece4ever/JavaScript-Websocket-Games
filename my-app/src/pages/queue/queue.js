@@ -6,10 +6,6 @@ var domain = (protocol,port) => {
     return `${protocol}://localhost:${port}`;
 } 
 
-var clearCookies = () => {
-    return document.cookie.split(";").forEach(function(c) { document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); });
-}
-
 const handleAscii = (str) => {
     return str.replace(" ",'_')
 }
@@ -64,7 +60,7 @@ const Queue = () => {
             setError('');
             const response = await CreateUser(name,pass,img);
             if(!response.data.error){
-                document.cookie = `DARIUSESSIONID=${response.data.token}`;
+                document.cookie = `DARIUSESSIONID=${response.data.token}; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;`;
                 setWin(response.data.username);
             }
         }

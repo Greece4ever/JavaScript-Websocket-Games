@@ -27,8 +27,15 @@ def AcessDB(view : callable):
         return view(*args,**kwargs)
     return wrapper
 
-class UserCreation(View):
+def AllowHeaders(header : str):
+    def decorator(view : callable):
+        def wrapper(*args,**kwargs):
+            return AppendHeaders(view(*args,**kwargs),{"Access-Control-Allow-Headers" : f'{header}'})
+        return wrapper
+    return decorator
 
+class UserCreation(View):
+    @AllowHeaders('username')
     def GET(self, request, **kwargs):
         username = request[0].get("username")
         s = {'error' : "Could not parse username."}
@@ -39,7 +46,6 @@ class UserCreation(View):
             else:
                 s = {'ok' : "Username {} is available".format(username)}
         response = status.HttpJson().__call__(s,200)
-        response = AppendHeaders(response,{"Access-Control-Allow-Headers" : "username"})
         return response
 
     def OPTIONS(self, request, **kwargs):
@@ -81,15 +87,31 @@ class UserCreation(View):
             return status.HttpJson().__call__({'error' : "Could not identify file {} as an image.".format(avatar['filename'])},400)
 
         Users.create(username,password,f'static/avatars/{s_path}')
-        token = Users.create_token(
-            str(Users.id(username))
-        )
+        token = Users.create_token(str(Users.id(username)[0]))
         return status.HttpJson().__call__({
             "username" : username,
             "password" : password,
             "img" : f'static/avatars/{s_path}',
             "token" : token
         },200)
+
+class UserIdentify(View):
+
+    @AllowHeaders("key")
+    def OPTIONS(self, request, **kwargs):
+        pprint.pprint(request)
+        cors_headers = request[0].get("Access-Control-Request-Headers")
+        print(cors_headers)
+        if(cors_headers=='key'):
+            return status.HttpJson().__call__({"hey" : "world"},200)
+
+    def GET(self, request, **kwargs):
+        key = request[0].get("key")
+        fetched = list(Users.fetchUser(key))
+        if(fetched is None):
+            return status.HttpJson().__call__({"error" : f'Not Authenticated'},400)
+        return status.HttpJson().__call__(fetched,200)
+        
 
 class StaticImageHandler(View):
     def GET(self,request,**kwargs):

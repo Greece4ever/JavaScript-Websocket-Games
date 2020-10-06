@@ -2,13 +2,16 @@
 // import {BrowserRouter as Router,Route, Switch} from 'react-router-dom'
 import React,{useEffect,useState} from "react"
 import "./base.css"
-import {Form,Container,Button} from "react-bootstrap"
+import {Form,Container} from "react-bootstrap"
 import 'bootstrap/dist/css/bootstrap.min.css';
+import useAuthentication from "../authentication";
+import {useHistory} from 'react-router-dom';
 
 
 // https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
 
 export default function Drawing() {
+  const authentication = useAuthentication();
   const [drawing,setDrawing] = useState(false);
   const [LineWidth,setLineWidth] = useState(10);
   const [caligraphy,setCaligrapgy] = useState(0);
@@ -25,6 +28,9 @@ export default function Drawing() {
   const [undo,setUndo] = useState(false);
   const [socket,setSocket] = useState();
 
+  const handleConnect = (kwargs) => {
+  }
+
   useEffect(() => {
     let PORT = 8000;
     const socket = new WebSocket(`ws://${window.location.hostname}:${PORT}/drawing`);
@@ -36,6 +42,7 @@ export default function Drawing() {
 
     socket.onmessage = (msg) => {
       let data = JSON.parse(msg.data)
+      if(data.type=='connected') return handleConnect(data); 
       const canvas = document.getElementById("canvas");
       let ctx = canvas.getContext("2d");  
       ctx.lineCap = "round";
@@ -192,10 +199,11 @@ export default function Drawing() {
 
   return (
     <div>
-      <div>
+      <div style={{"marginLeft" : "20px",marginTop : "10px"}}>
+        <img style={{"width" : "64px",border : "1px solid #dcd1d1"}} src={"http://localhost:8000/static/avatars/af44b2.png"}></img>
         <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
-      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px"}} onKeyDown={e => handleKeyPress(e)}
+      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px"}} onKeyDown={e => handleKeyPress(e)}
        onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
        onKeyDown={(e) => handleKeyDown(e)} 
        onKeyUp={(e) => handleKeyUp(e)}
@@ -205,7 +213,13 @@ export default function Drawing() {
         <div className={"css"} style={{height : "421px",width : "200px",backgroundColor : "transparent"}}>
         </div>
         <Form.Group style={{"marginTop" : "30px"}}  controlId="exampleForm.ControlTextarea1">
-          <Form.Control style={{"resize" : "none","maxHeight" : "50px"}} as="textarea" rows="3" />
+          <Form.Control onKeyDown={(e) => {
+            if(e.key==='Enter' || e.keyCode===13 || e.which===13){
+              e.preventDefault();
+              socket.send(e.target.value)
+            }
+
+          }} style={{"resize" : "none","maxHeight" : "50px"}} as="textarea" rows="3" />
         </Form.Group>
       </div>
       <div>

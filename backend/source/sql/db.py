@@ -42,6 +42,19 @@ class User:
             WHERE name like %hello%
         """)
 
+    def fetchUser(self, token_id):
+        token = self.cursor[0].execute("""
+            SELECT user_id FROM TOKEN
+            WHERE token=?
+        """,(token_id,)).fetchone()
+        if token is None: return False
+        user_id = token[0]
+        user = self.cursor[0].execute("""
+            SELECT name,img FROM USER
+            WHERE id=? 
+        """,(user_id,)).fetchone()
+        return user
+
     def verify(self,name,password):
         self.cursor[0].execute("""
             SELECT * FROM USER
