@@ -217,56 +217,6 @@ export default function Drawing() {
     }
   }
 
-  useEffect(() => {
-    var c = document.getElementById("myCanvas");
-    var ctx = c.getContext("2d");
-    
-    // Create gradient
-    // var grd = ctx.createLinearGradient(0,0,500,0);
-    // grd.addColorStop(0,"black");
-    // grd.addColorStop(1,"#fff");
-    
-    // // Fill with gradient
-    // ctx.fillStyle = grd;
-    var gradient = ctx.createLinearGradient(0, 0, 300, -300);
-    gradient.addColorStop(0, 'rgba(179, 63, 19, 1)');
-    gradient.addColorStop(8 / 100, 'rgba(160, 79, 44, 1)');
-    gradient.addColorStop(42 / 100, 'rgba(33, 238, 20, 1)');
-    gradient.addColorStop(61 / 100, 'rgba(35, 182, 208, 1)');
-    gradient.addColorStop(76 / 100, 'rgba(0, 212, 255, 1)');
-    gradient.addColorStop(84 / 100, 'rgba(0, 212, 255, 1)');
-    gradient.addColorStop(96 / 100, 'rgba(0, 212, 255, 1)');
-    ctx.fillStyle = gradient;
-    
-
-    ctx.fillRect(10,10,c.width,c.height);
-    
-  },[])
-
-  function findPos(obj) {
-    var curleft = 0, curtop = 0;
-    if (obj.offsetParent) {
-        do {
-            curleft += obj.offsetLeft;
-            curtop += obj.offsetTop;
-        } while (obj = obj.offsetParent);
-        return { x: curleft, y: curtop };
-    }
-    return undefined;
-}
-
-  const ChangeColor = (e) => {
-    let pos = findPos(e.currentTarget)
-    let [x,y] = [e.pageX - pos.x,e.pageY - pos.y];
-    let ctx = e.currentTarget.getContext('2d');
-    console.log(x,y)
-    let p = ctx.getImageData(x,y,1,1).data;
-    setGradient([p[0],p[1],p[2]])
-    console.log()
-  
-  }
-
-
   return (
     <Container style={{maxWidth: "1500px"}} >
       <div style={{"marginLeft" : "20px",marginTop : "10px"}}>
@@ -276,18 +226,8 @@ export default function Drawing() {
         <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
       <div class="css" style={{float : "left",height : "600px",width : "300px",marginLeft : "20px",marginTop : "10px",position : "relative"}}>
-        {/* <img style={{"backgroundColor" : "red"}} src={gradient}></img> */}
-        <canvas onMouseMove={(e) => ChangeColor(e)} id={"myCanvas"} width={"200px"} height={"200px"}></canvas>
-        {/* <input onLoad={(e) => {console.log("loaded")}} id={'color_changer'} onChange={(e) => {setColor(e.target.value)}} id="pick" 
-        style={{
-        "backgroundColor" : "transparent",
-        position : "absolute",
-        width : "50px !important",
-        left : "10%",
-        bottom : "50%"
-        }} type="color"></input> */}
+        <ColorPicker />
       </div>
-      <ColorPicker />
       <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",backgroundColor : "aliceblue"}} onKeyDown={e => handleKeyPress(e)}
        onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
        onKeyDown={(e) => handleKeyDown(e)} 
@@ -323,8 +263,6 @@ export default function Drawing() {
         position : "fixed","visibility" : "hidden",
         }} type="color"></input>
       </div>
-
-      {/* <button onClick={() => console.log(paths)}>printf</button> */}
     </Container>
   );
 };
