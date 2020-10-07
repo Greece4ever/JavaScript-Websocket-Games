@@ -6,10 +6,15 @@ import {Form,Container} from "react-bootstrap"
 import 'bootstrap/dist/css/bootstrap.min.css';
 import useAuthentication from "../authentication";
 import Display from "./user_display";
-import gradient from "./gradient.png";
+import ColorPicker from "./color_picker";
 
 // TODO ----> https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
 
+function rgbToHex(r, g, b) {
+  if (r > 255 || g > 255 || b > 255)
+      throw "Invalid color component";
+  return ((r << 16) | (g << 8) | b).toString(16);
+}
 
 export default function Drawing() {
   useAuthentication();
@@ -30,6 +35,7 @@ export default function Drawing() {
   const [socket,setSocket] = useState();
   const [players,setPlayers] = useState([]);
   const [msgs,setMSG] = useState([]);
+  const [gradient,setGradient] = useState([]);
 
   const drawData = (x,y,lineWidth,strokeStyle) => {
     const canvas = document.getElementById("canvas");
@@ -212,8 +218,54 @@ export default function Drawing() {
   }
 
   useEffect(() => {
+    var c = document.getElementById("myCanvas");
+    var ctx = c.getContext("2d");
+    
+    // Create gradient
+    // var grd = ctx.createLinearGradient(0,0,500,0);
+    // grd.addColorStop(0,"black");
+    // grd.addColorStop(1,"#fff");
+    
+    // // Fill with gradient
+    // ctx.fillStyle = grd;
+    var gradient = ctx.createLinearGradient(0, 0, 300, -300);
+    gradient.addColorStop(0, 'rgba(179, 63, 19, 1)');
+    gradient.addColorStop(8 / 100, 'rgba(160, 79, 44, 1)');
+    gradient.addColorStop(42 / 100, 'rgba(33, 238, 20, 1)');
+    gradient.addColorStop(61 / 100, 'rgba(35, 182, 208, 1)');
+    gradient.addColorStop(76 / 100, 'rgba(0, 212, 255, 1)');
+    gradient.addColorStop(84 / 100, 'rgba(0, 212, 255, 1)');
+    gradient.addColorStop(96 / 100, 'rgba(0, 212, 255, 1)');
+    ctx.fillStyle = gradient;
+    
 
-  })
+    ctx.fillRect(10,10,c.width,c.height);
+    
+  },[])
+
+  function findPos(obj) {
+    var curleft = 0, curtop = 0;
+    if (obj.offsetParent) {
+        do {
+            curleft += obj.offsetLeft;
+            curtop += obj.offsetTop;
+        } while (obj = obj.offsetParent);
+        return { x: curleft, y: curtop };
+    }
+    return undefined;
+}
+
+  const ChangeColor = (e) => {
+    let pos = findPos(e.currentTarget)
+    let [x,y] = [e.pageX - pos.x,e.pageY - pos.y];
+    let ctx = e.currentTarget.getContext('2d');
+    console.log(x,y)
+    let p = ctx.getImageData(x,y,1,1).data;
+    setGradient([p[0],p[1],p[2]])
+    console.log()
+  
+  }
+
 
   return (
     <Container style={{maxWidth: "1500px"}} >
@@ -224,19 +276,8 @@ export default function Drawing() {
         <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
       <div class="css" style={{float : "left",height : "600px",width : "300px",marginLeft : "20px",marginTop : "10px",position : "relative"}}>
-        <img src={gradient}></img>
-        <div style={{"width" : "50px",height : "50px",backgroundColor : "red",position : "absolute"}} draggable
-        onDrag={(e) => {
-          let elm = e.currentTarget;
-          elm.style.left = `${e.clientX-80}px`
-          elm.style.top = `${e.clientY-100}px`
-        }}
-        onDrop={(e) => {
-          let elm = e.currentTarget;
-          elm.style.left = `${e.clientX}px`
-          elm.style.top = `${e.clientY}px`
-        }}
-        ></div>
+        {/* <img style={{"backgroundColor" : "red"}} src={gradient}></img> */}
+        <canvas onMouseMove={(e) => ChangeColor(e)} id={"myCanvas"} width={"200px"} height={"200px"}></canvas>
         {/* <input onLoad={(e) => {console.log("loaded")}} id={'color_changer'} onChange={(e) => {setColor(e.target.value)}} id="pick" 
         style={{
         "backgroundColor" : "transparent",
@@ -246,7 +287,7 @@ export default function Drawing() {
         bottom : "50%"
         }} type="color"></input> */}
       </div>
-
+      <ColorPicker />
       <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",backgroundColor : "aliceblue"}} onKeyDown={e => handleKeyPress(e)}
        onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
        onKeyDown={(e) => handleKeyDown(e)} 
