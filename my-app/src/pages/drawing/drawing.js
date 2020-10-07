@@ -6,10 +6,15 @@ import {Form,Container} from "react-bootstrap"
 import 'bootstrap/dist/css/bootstrap.min.css';
 import useAuthentication from "../authentication";
 import Display from "./user_display";
-import gradient from "./gradient.png";
+import ColorPicker from "./color_picker";
 
 // TODO ----> https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
 
+function rgbToHex(r, g, b) {
+  if (r > 255 || g > 255 || b > 255)
+      throw "Invalid color component";
+  return ((r << 16) | (g << 8) | b).toString(16);
+}
 
 export default function Drawing() {
   useAuthentication();
@@ -30,6 +35,7 @@ export default function Drawing() {
   const [socket,setSocket] = useState();
   const [players,setPlayers] = useState([]);
   const [msgs,setMSG] = useState([]);
+  const [gradient,setGradient] = useState([]);
 
   const drawData = (x,y,lineWidth,strokeStyle) => {
     const canvas = document.getElementById("canvas");
@@ -211,10 +217,6 @@ export default function Drawing() {
     }
   }
 
-  useEffect(() => {
-
-  })
-
   return (
     <Container style={{maxWidth: "1500px"}} >
       <div style={{"marginLeft" : "20px",marginTop : "10px"}}>
@@ -224,29 +226,8 @@ export default function Drawing() {
         <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
       <div class="css" style={{float : "left",height : "600px",width : "300px",marginLeft : "20px",marginTop : "10px",position : "relative"}}>
-        <img src={gradient}></img>
-        <div style={{"width" : "50px",height : "50px",backgroundColor : "red",position : "absolute"}} draggable
-        onDrag={(e) => {
-          let elm = e.currentTarget;
-          elm.style.left = `${e.clientX-80}px`
-          elm.style.top = `${e.clientY-100}px`
-        }}
-        onDrop={(e) => {
-          let elm = e.currentTarget;
-          elm.style.left = `${e.clientX}px`
-          elm.style.top = `${e.clientY}px`
-        }}
-        ></div>
-        {/* <input onLoad={(e) => {console.log("loaded")}} id={'color_changer'} onChange={(e) => {setColor(e.target.value)}} id="pick" 
-        style={{
-        "backgroundColor" : "transparent",
-        position : "absolute",
-        width : "50px !important",
-        left : "10%",
-        bottom : "50%"
-        }} type="color"></input> */}
+        <ColorPicker />
       </div>
-
       <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",backgroundColor : "aliceblue"}} onKeyDown={e => handleKeyPress(e)}
        onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
        onKeyDown={(e) => handleKeyDown(e)} 
@@ -254,7 +235,7 @@ export default function Drawing() {
        onMouseDown={() => setDrawing(true)} 
        onMouseMove={(e) => {handleMove(e)}} width={800} height={600} id="canvas"></canvas>
       <div style={{"float" : "right",resize : "none",marginRight : "50px"}}>
-        <div className={"css"} style={{height : "421px",width : "200px",backgroundColor : "transparent"}}>
+        <div className={"css"} style={{height : "421px",width : "250px",backgroundColor : "transparent"}}>
           {msgs.map(m => (
             <div>
               <label className={"text-muted"}>{m.date}&nbsp;</label>
@@ -282,8 +263,6 @@ export default function Drawing() {
         position : "fixed","visibility" : "hidden",
         }} type="color"></input>
       </div>
-
-      {/* <button onClick={() => console.log(paths)}>printf</button> */}
     </Container>
   );
 };
