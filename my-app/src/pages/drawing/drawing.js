@@ -295,7 +295,7 @@ export default function Drawing() {
        onMouseDown={() => setDrawing(true)} 
        onMouseMove={(e) => {handleMove(e)}} width={800} height={600} id="canvas"></canvas>
       <div style={{"float" : "right",resize : "none",marginRight : "50px"}}>
-        <div className={"css"} style={{height : "421px",width : "200px",backgroundColor : "transparent"}}>
+        <div className={"css"} style={{height : "421px",width : "250px",backgroundColor : "transparent"}}>
           {msgs.map(m => (
             <div>
               <label className={"text-muted"}>{m.date}&nbsp;</label>
