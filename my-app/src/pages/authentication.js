@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React,{useEffect} from 'react';
+import {useEffect} from 'react';
 import {useHistory} from 'react-router-dom';
 
 const fetchAuthenticaiton = (token) => {
@@ -22,13 +22,13 @@ export default function useAuthentication(){
 
     useEffect(() => {        
         let SESSION_ID = getCookie("DARIUSESSIONID");
-        if(SESSION_ID==undefined) deny();
+        if(SESSION_ID===undefined) deny();
         async function isAuthenticated(token){
             console.log("FETCHING DATA")
             const response = await fetchAuthenticaiton(token);
             if(response.data.error) deny();
             console.log(response)}        
-        try {let authenticated = isAuthenticated(SESSION_ID);}
+        try {isAuthenticated(SESSION_ID);}
         catch {deny();}
       },[])
     

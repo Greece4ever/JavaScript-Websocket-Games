@@ -8,26 +8,26 @@ from .sql import db
 
 DB_PATH = db.DB_PATH("database.db")
 
-Database = db.Database(DB_PATH)
-Users = db.User(Database)
+Database : db.Database = db.Database(DB_PATH)
+Users : db.User = db.User(Database)
 
 
-STATIC_FILES = os.path.join(
+STATIC_FILES : str = os.path.join(
     os.getcwd(),"source","static",
 )
 
-s = lambda *args : os.path.join(STATIC_FILES,*args)
-j = os.path.join
+s : callable = lambda *args : os.path.join(STATIC_FILES,*args)
+j : callable = os.path.join
 
 
-def AcessDB(view : callable):
+def AcessDB(view : callable) -> callable:
     """Decorator that allows access to the Database"""
     def wrapper(*args,**kwargs):
         Database.create_cursor()
         return view(*args,**kwargs)
     return wrapper
 
-def AllowHeaders(header : str):
+def AllowHeaders(header : str) -> callable:
     def decorator(view : callable):
         def wrapper(*args,**kwargs):
             return AppendHeaders(view(*args,**kwargs),{"Access-Control-Allow-Headers" : f'{header}'})
@@ -36,7 +36,7 @@ def AllowHeaders(header : str):
 
 class UserCreation(View):
     @AllowHeaders('username')
-    def GET(self, request, **kwargs):
+    def GET(self, request : tuple, **kwargs):
         username = request[0].get("username")
         s = {'error' : "Could not parse username."}
         if(username is not None):
@@ -76,15 +76,20 @@ class UserCreation(View):
         if Users.user_exists(username):
             return status.HttpJson().__call__({"error" : "Username {} already exists.".format(username)},400)
 
+        print(avatar)
+
         try:
             img = Image.open(avatar['data'])
-            img = img.thumbnail((128,128), Image.ANTIALIAS)
-            # img = img.resize((128,128))
+            print(img)
+            img.thumbnail((128,128), Image.ANTIALIAS)
+            print(img,"<--- This is image")
+            img = img.resize((128,128))
             img_hash = db.hx(db.rn(2,12))
             s_path =  img_hash + "." + avatar['filename'].split(".")[-1]
             path = s('avatars',img_hash) + "." + avatar['filename'].split(".")[-1]
             img.save(path)
-        except Exception:
+        except Exception as f:
+            print(f)
             return status.HttpJson().__call__({'error' : "Could not identify file {} as an image.".format(avatar['filename'])},400)
 
         Users.create(username,password,f'static/avatars/{s_path}')
@@ -106,10 +111,11 @@ class UserIdentify(View):
 
     def GET(self, request, **kwargs):
         key = request[0].get("key")
-        fetched = list(Users.fetchUser(key))
-        if(fetched is None):
+        user = Users.fetchUser(key)
+        if(user is None):
             return status.HttpJson().__call__({"error" : f'Not Authenticated'},400)
-        return status.HttpJson().__call__(fetched,200)
+        user = list(user)
+        return status.HttpJson().__call__(user,200)
         
 
 class StaticImageHandler(View):

@@ -14,6 +14,22 @@ function findPos(obj) {
     return undefined;
 }
 
+function click(x, y)
+{
+    let ev = new MouseEvent('click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true,
+        'screenX': x,
+        'screenY': y
+    });
+
+    let el = document.elementFromPoint(x, y);
+
+    return el.dispatchEvent(ev);
+}
+
+
 const ColorPicker = (props) => {
     const [gradient,setGradient] = useState([228, 204, 204]);
     const [xy,setXY] = useState([27, 27]);
@@ -39,6 +55,7 @@ const ColorPicker = (props) => {
         }
         ctx.fillStyle = color
         ctx.fillRect(1,1,canvas.width,canvas.height);
+
     }
 
     // Draw Initial Canvas
@@ -92,30 +109,31 @@ const ColorPicker = (props) => {
         e.preventDefault();
         let canvas = e.currentTarget;
         let pos = findPos(canvas);
-        let [x,y] = [e.pageX - pos.x,e.pageY - pos.y];
+        let [x,y] = [e.pageX - pos.x,30];
         let ctx = canvas.getContext('2d');
         let p = ctx.getImageData(x,y,1,1).data;
         DrawCanvas(`rgb(${p[0]},${p[1]},${p[2]})`);
+        let [x1,y1] = xy;
+        click(x1,y1)
     }
-    
-      const rgb = (r,g,b) => {
-        return `rgb(${r},${g},${b})`
-      }
- 
+     
       return(
           <div style={{"cursor" : cursor}}>
             <img style={{"visibility" : "hidden",position : "absolute"}} ref={img1} src={s}></img>
             <canvas style={{"border" : "11px solid transparent","background" : "radial-gradient(black, transparent)",borderRadius : "40px"}} ref={cvs} 
             onMouseDown={(e) => {
+                console.log("click")
                 e.preventDefault();
                 setCursor("pointer");
                 setMouseDown(true);
             }}
+
             onMouseUp={(e) => {
                 e.preventDefault();
                 setCursor("auto");
                 setMouseDown(false);
             }}
+
             onMouseMove={(e) => {
                 e.preventDefault();
                 if(mouseDown) {
@@ -161,16 +179,13 @@ const ColorPicker = (props) => {
             }}
 
             onMouseLeave={(e) => {
-                console.log("Mouse has left the area")
                 e.preventDefault()
                 setCursor("auto");
-                console.log(`Is my mouse down ? : ${sliderMouseDown}`)
                 if(sliderMouseDown) setSliderDownButOutside(true);
                 setSliderMouseDown(false);
             }}
 
             onMouseEnter={() => {
-                console.log(`Is my mouse down ? : ${sliderDownButOutside} and is Gmouses on ? : ${props.GMouse}`)
                 if(sliderDownButOutside && props.GMouse) {
                     setCursor("pointer");
                     setSliderMouseDown(true);    
@@ -184,7 +199,7 @@ const ColorPicker = (props) => {
                     let x = e.clientX;
                     let dx = s.left;
                     let x_pos = x - dx;
-                    if(x_pos <= 27 || x_pos >= 256) {
+                    if(x_pos <= 30 || x_pos >= 256) {
                         return;
                     };
                     ChangeColorHue(e)
@@ -202,9 +217,9 @@ const ColorPicker = (props) => {
                         <kbd style={{"width" : "20%",marginLeft :"40px",display : "-webkit-flex"}}>BLUE <div style={{"width" : "10px",height : "10px",backgroundColor : "blue",marginLeft : "10px",marginTop : "5px"}}></div></kbd>
                     </Row>
                     <Row style={{"marginTop" : "10px"}}>
-                        <Form.Control value={gradient[0]} className={"css"} style={{"width" : "30%",marginLeft :"10px",background : "radial-gradient(black, transparent)",border : 0}} />
-                        <Form.Control value={gradient[1]} className={"css"} style={{"width" : "30%",marginLeft :"5px",background : "radial-gradient(black, transparent)",border : 0}} />
-                        <Form.Control value={gradient[2]} className={"css"} style={{"width" : "30%",marginLeft :"5px",background : "radial-gradient(black, transparent)",border : 0}} />
+                        <Form.Control readOnly value={gradient[0]} className={"css"} style={{"width" : "30%",marginLeft :"10px",background : "radial-gradient(black, transparent)",border : 0}} />
+                        <Form.Control readOnly value={gradient[1]} className={"css"} style={{"width" : "30%",marginLeft :"5px",background : "radial-gradient(black, transparent)",border : 0}} />
+                        <Form.Control readOnly value={gradient[2]} className={"css"} style={{"width" : "30%",marginLeft :"5px",background : "radial-gradient(black, transparent)",border : 0}} />
                     </Row>
                 </Form.Group>
                 <div style={{"textAlign": "center"}}>
