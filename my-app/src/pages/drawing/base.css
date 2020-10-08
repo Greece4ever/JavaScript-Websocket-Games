@@ -62,10 +62,10 @@
   .slider::-webkit-slider-thumb {
     -webkit-appearance: none; /* Override default look */
     appearance: none;
-    width: 25px; /* Set a specific slider handle width */
+    width: 5px; /* Set a specific slider handle width */
     height: 25px; /* Slider handle height */
     border-radius: 50px;
-    background: #9c24b9; /* Green background */
+    background: #4f5257; /* Green background */
     cursor: grab; /* Cursor on hover */
   }
   

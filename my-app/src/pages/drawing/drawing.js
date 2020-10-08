@@ -21,7 +21,7 @@ export default function Drawing() {
   const [drawing,setDrawing] = useState(false);
   const [LineWidth,setLineWidth] = useState(10);
   const [caligraphy,setCaligrapgy] = useState(0);
-  const [color,setColor] = useState("#000000");
+  const [color,setColor] = useState([0,0,0]);
   const [keys,setKeys] = useState(false);
   const [paths,setPaths] = useState([]);
   const [keyPress,No] = useState({
@@ -29,8 +29,8 @@ export default function Drawing() {
     68 : () => setLineWidth(prev => prev - 1),
     87 : () => setCaligrapgy(prev => prev + 1),
     83 : () => setCaligrapgy(prev => prev - 1),
-    67 : () => {let pick = document.getElementById("pick");pick.style.visibility = "visible";pick.click();pick.style.visibility = "hidden";}
   });
+  const [opacity,setOpacity] = useState(0.5);
   const [undo,setUndo] = useState(false);
   const [socket,setSocket] = useState();
   const [players,setPlayers] = useState([]);
@@ -110,29 +110,31 @@ export default function Drawing() {
     const canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
     ctx.lineCap = "round";
-
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.beginPath();
     paths.forEach(bitdata => {
-      ctx.beginPath();
-      
+      let [x,y] = [bitdata[0],bitdata[1]]
+
       // Define Color and Width
       ctx.lineWidth = bitdata[2];
       ctx.strokeStyle = bitdata[3];
 
-      ctx.lineTo(bitdata[0],bitdata[1]);
-      ctx.stroke();
-      ctx.beginPath();  
-      ctx.moveTo(bitdata[0],bitdata[1]);
 
+      ctx.lineTo(x,y); // xy
+      ctx.moveTo(x-bitdata[4],y-bitdata[4]);
+      ctx.stroke();
+      ctx.beginPath();
     })
+
   }
 
   useEffect(() => {
     redraw();    
+    // setDrawing(false)
   },[undo])
 
-
   // Draw on Screen
-  const handleMove = (e) => { 
+  const handleMove = (e) => {
     e.preventDefault();
     const canvas = document.getElementById("canvas");
     if(!drawing) return null;
@@ -142,9 +144,10 @@ export default function Drawing() {
     let [dx,dy] = [s.left,s.top];
 
     // Settings
+    let s_style = `rgba(${color.join(",")},${opacity})`
     ctx.lineCap = "round";
     ctx.lineWidth = LineWidth;
-    ctx.strokeStyle  = color;
+    ctx.strokeStyle  = s_style;
     [x,y] = [x-dx,y-dy]
     if(keys){
       ctx.beginPath();
@@ -153,6 +156,7 @@ export default function Drawing() {
       return;
     }
     ctx.lineTo(x,y);
+    setPaths(prev => [...prev,[x,y,LineWidth,s_style,caligraphy]])
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(x-caligraphy,y-caligraphy)
@@ -177,11 +181,6 @@ export default function Drawing() {
     else if (e.keyCode===83){
       setCaligrapgy(prev => prev-1)
     }
-    else if (e.keyCode===67){
-      let pick = document.getElementById("pick");
-      pick.style.visibility = "visible";
-      pick.click();pick.style.visibility = "hidden"
-    }
   }
 
   // Cut and Undo && Key Presses
@@ -197,7 +196,8 @@ export default function Drawing() {
 
     // Undo
     else if (e.keyCode === 90 && keys){
-      setPaths(prev => prev.slice(0,prev.length-2));
+      console.log(paths)
+      setPaths(prev => prev.slice(0,prev.length-20));
       setUndo(prev => !prev);
     }
 
@@ -212,7 +212,6 @@ export default function Drawing() {
       setLineWidth(10);
       setColor("#000000");
     }
-
   }
 
   const handleKeyUp = (e) => {
@@ -230,15 +229,29 @@ export default function Drawing() {
         <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
       <div class="css" style={{float : "left",height : "600px",width : "300px",marginLeft : "20px",marginTop : "10px",position : "relative"}}>
-        <ColorPicker setParentColor={setColor} />
+        <ColorPicker setParentColor={setColor} opacity={opacity} setOpacity={setOpacity} setLineWidth={setLineWidth} LineWidth={LineWidth} />
       </div>
-      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",backgroundColor : "aliceblue"}} onKeyDown={e => handleKeyPress(e)}
+      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",background : "linear-gradient(45deg, black, transparent)",backgroundColor : "aliceblue",border : "5px solid #232525"}} onKeyDown={e => handleKeyPress(e)}
        onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
-       onKeyDown={(e) => handleKeyDown(e)} 
-       onKeyUp={(e) => handleKeyUp(e)}
-       onMouseDown={() => setDrawing(true)} 
-       onMouseMove={(e) => {handleMove(e)}} width={800} height={600} id="canvas"></canvas>
-      <div style={{"float" : "right",resize : "none",marginRight : "50px"}}>
+       
+       onKeyDown={(e) => {
+        e.preventDefault()
+         handleKeyDown(e);
+       }} 
+
+       onKeyUp={(e) => {
+        handleKeyUp(e)
+       }}
+   
+       onMouseDown={(e) => {
+        setDrawing(true)
+       }} 
+       onMouseMove={(e) => {
+        window.getSelection().removeAllRanges()
+        handleMove(e);
+       }} width={800} height={600} id="canvas"></canvas>
+
+      <div style={{"float" : "right",resize : "none",marginRight : "50px",marginTop : "10px"}}>
         <div className={"css"} style={{height : "421px",width : "250px",backgroundColor : "transparent"}}>
           {msgs.map(m => (
             <div>
@@ -259,13 +272,6 @@ export default function Drawing() {
               backgroundColor : "#2e343a",
               border : "1px solid #333b52"}} as="textarea" rows="3" />
         </Form.Group>
-      </div>
-      <div>
-        <input onChange={(e) => {setColor(e.target.value)}} id="pick" 
-        style={{"backgroundColor" : "transparent",
-        border : "0",height : "0px",width : "0px",
-        position : "fixed","visibility" : "hidden",
-        }} type="color"></input>
       </div>
     </Container>
   );

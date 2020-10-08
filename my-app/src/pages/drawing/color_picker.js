@@ -17,7 +17,7 @@ function findPos(obj) {
 const ColorPicker = (props) => {
     const [gradient,setGradient] = useState([228, 204, 204]);
     const [xy,setXY] = useState([27, 27]);
-    const [mouseDown,setMouseDown] = useState(false)
+    const [mouseDown,setMouseDown] = useState(false);
     const [sliderXY,setSliderXY] = useState([30,300]);
     const [sliderMouseDown,setSliderMouseDown] = useState(false);
     const [cursor,setCursor] = useState("auto");
@@ -30,12 +30,10 @@ const ColorPicker = (props) => {
     const DrawCanvas = (color) => {
         let canvas = cvs.current;
         let ctx = canvas.getContext("2d");
-        // ctx.clearRect(0, 0, canvas.width, canvas.height);
         let img = new Image();
         img.src = s
         img.onload = () => {
             ctx.drawImage(img,1,1)
-            // ctx.fillStyle = color
         }
         ctx.fillStyle = color
         ctx.fillRect(1,1,canvas.width,canvas.height);
@@ -85,7 +83,7 @@ const ColorPicker = (props) => {
         let p = ctx.getImageData(x,y,1,1).data;
         let colors = [p[0],p[1],p[2]];
         setGradient(colors)
-        props.setParentColor(`rgb(${colors[0]},${colors[1]},${colors[2]})`);
+        props.setParentColor(colors);
       }
 
     const ChangeColorHue = (e) => {
@@ -128,16 +126,36 @@ const ColorPicker = (props) => {
                     if(x_pos <= 20 || x_pos >= 260 || y_pos >= 255 || y_pos <= 15) return;
                     setXY(prev => [x-dx,y-dy]);    
                 }
-                return;
-            }} id={"myCanvas"} width={"256px"} height={"256px"}></canvas>
+                return;}} 
+
+            onMouseLeave={(e) => {
+                e.preventDefault();
+                setCursor("auto");
+                setMouseDown(false);
+            }}
+
+            onMouseEnter={() => {
+
+            }}
+
+            id={"myCanvas"} width={"256px"} height={"256px"}></canvas>
+           
             <canvas style={{"borderRadius" : "50px",background : "radial-gradient(black, transparent)"}} ref={cvs2} width={"270px"} height={"50px"}
              onMouseDown={(e) => {
+                e.preventDefault()
                 setCursor("grab");
                 e.preventDefault()
                 setSliderMouseDown(true);
             }}
             
             onMouseUp={(e) => {
+                e.preventDefault()
+                setCursor("auto");
+                setSliderMouseDown(false);
+            }}
+
+            onMouseLeave={(e) => {
+                console.log("Mouse has left the area")
                 e.preventDefault()
                 setCursor("auto");
                 setSliderMouseDown(false);
@@ -175,7 +193,13 @@ const ColorPicker = (props) => {
                 </Form.Group>
                 <div style={{"textAlign": "center"}}>
                     <kbd>Line Width</kbd>
-                    <input onChange={(e) => console.log(e.target.value)} className={"slider"} style={{"width" : "270px",marginTop : "15px"}} type="range"></input>
+                    <input value={props.lineWidth} onChange={(e) => props.setLineWidth(e.target.value)} className={"slider"} style={{"width" : "270px",marginTop : "15px"}} type="range"></input>
+                </div>
+                <div style={{"textAlign": "center"}}>
+                    <kbd>Opacity</kbd>
+                    <input  onChange={(e) => {props.setOpacity(e.target.value / 100)}} 
+                    className={"slider"} style={{"width" : "270px",marginTop : "15px"}} 
+                    type="range" start={0} end={100}></input>
                 </div>
             </div>
             <div ref={p_bar} 
@@ -187,13 +211,7 @@ const ColorPicker = (props) => {
             position : "absolute",left : `${sliderXY[0]}px`,top : `${sliderXY[1]}px`}} ref={slider}>
             </div>
             
-            <div style={{"width" : "50px",height : "50px",marginTop : "10px",
-            borderRadius : "10px",border : "5px solid #343a40",
-            backgroundColor : rgb(gradient[0],gradient[1],gradient[2]),}} draggable={"false"}></div>
-        </div>
-
-        
-      )
+        </div>)
     
        
 }
