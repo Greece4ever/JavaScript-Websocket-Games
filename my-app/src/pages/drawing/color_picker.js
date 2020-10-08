@@ -14,15 +14,35 @@ function findPos(obj) {
     return undefined;
 }
 
-const ColorPicker = () => {
-    const [gradient,setGradient] = useState([]);
+const ColorPicker = (props) => {
+    const [gradient,setGradient] = useState([228, 204, 204]);
+    const [xy,setXY] = useState([27, 27]);
+    const [mouseDown,setMouseDown] = useState(false)
+    const [sliderXY,setSliderXY] = useState([30,300]);
+    const [sliderMouseDown,setSliderMouseDown] = useState(false);
+    const [cursor,setCursor] = useState("auto");
     const cvs = useRef();
     const img1 = useRef();
     const cvs2 = useRef();
-    const p_bar = useRef()
+    const p_bar = useRef();
+    const slider = useRef();
 
+    const DrawCanvas = (color) => {
+        let canvas = cvs.current;
+        let ctx = canvas.getContext("2d");
+        // ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let img = new Image();
+        img.src = s
+        img.onload = () => {
+            ctx.drawImage(img,1,1)
+            // ctx.fillStyle = color
+        }
+        ctx.fillStyle = color
+        ctx.fillRect(1,1,canvas.width,canvas.height);
+    }
+
+    // Draw Initial Canvas
     useEffect(() => {
-        // let canvas = ReactDOM.findDOMNode(cvs);
         let canvas = cvs.current;
         let ctx = canvas.getContext("2d");
         let img = new Image();
@@ -34,6 +54,7 @@ const ColorPicker = () => {
         ctx.fillRect(1,1,canvas.width,canvas.height);
     },[])
 
+    // Create Color Slider
     useEffect(() => {
         const canvas = cvs2.current;
         var ctx = canvas.getContext("2d");
@@ -64,20 +85,80 @@ const ColorPicker = () => {
         let p = ctx.getImageData(x,y,1,1).data;
         let colors = [p[0],p[1],p[2]];
         setGradient(colors)
-        console.log(colors)      
+        props.setParentColor(`rgb(${colors[0]},${colors[1]},${colors[2]})`);
       }
-    
 
+    const ChangeColorHue = (e) => {
+        e.preventDefault();
+        let canvas = e.currentTarget;
+        let pos = findPos(canvas);
+        let [x,y] = [e.pageX - pos.x,e.pageY - pos.y];
+        let ctx = canvas.getContext('2d');
+        let p = ctx.getImageData(x,y,1,1).data;
+        DrawCanvas(`rgb(${p[0]},${p[1]},${p[2]})`);
+    }
+    
       const rgb = (r,g,b) => {
         return `rgb(${r},${g},${b})`
       }
  
-
       return(
-          <div>
+          <div style={{"cursor" : cursor}}>
             <img style={{"visibility" : "hidden",position : "absolute"}} ref={img1} src={s}></img>
-            <canvas style={{"border" : "11px solid transparent","background" : "radial-gradient(black, transparent)",borderRadius : "40px"}} ref={cvs} onMouseMove={(e) => ChangeColor(e)} id={"myCanvas"} width={"256px"} height={"256px"}></canvas>
-            <canvas style={{"borderRadius" : "50px",background : "radial-gradient(black, transparent)"}} ref={cvs2} width={"270px"} height={"50px"}>
+            <canvas style={{"border" : "11px solid transparent","background" : "radial-gradient(black, transparent)",borderRadius : "40px"}} ref={cvs} 
+            onMouseDown={(e) => {
+                e.preventDefault();
+                setCursor("pointer");
+                setMouseDown(true);
+            }}
+            onMouseUp={(e) => {
+                e.preventDefault();
+                setCursor("auto");
+                setMouseDown(false);
+            }}
+            onMouseMove={(e) => {
+                e.preventDefault();
+                if(mouseDown) {
+                    let s = e.currentTarget.getBoundingClientRect();
+                    let [x,y] = [e.clientX,e.clientY];
+                    let [dx,dy] = [s.left,s.top];
+                    ChangeColor(e);
+                    let x_pos = x-dx;
+                    let y_pos = y-dy;
+                    if(x_pos <= 20 || x_pos >= 260 || y_pos >= 255 || y_pos <= 15) return;
+                    setXY(prev => [x-dx,y-dy]);    
+                }
+                return;
+            }} id={"myCanvas"} width={"256px"} height={"256px"}></canvas>
+            <canvas style={{"borderRadius" : "50px",background : "radial-gradient(black, transparent)"}} ref={cvs2} width={"270px"} height={"50px"}
+             onMouseDown={(e) => {
+                setCursor("grab");
+                e.preventDefault()
+                setSliderMouseDown(true);
+            }}
+            
+            onMouseUp={(e) => {
+                e.preventDefault()
+                setCursor("auto");
+                setSliderMouseDown(false);
+            }}
+
+            onMouseMove={(e) => {
+                e.preventDefault();
+                if(sliderMouseDown) {
+                    let s = e.currentTarget.getBoundingClientRect();
+                    let x = e.clientX;
+                    let dx = s.left;
+                    let x_pos = x - dx;
+                    if(x_pos <= 27 || x_pos >= 256) {
+                        return;
+                    };
+                    ChangeColorHue(e)
+                    setSliderXY(prev => [x-dx,300]);    
+                }
+            }}
+            
+            >
             </canvas>
             <div>
                 <Form.Group>
@@ -94,22 +175,21 @@ const ColorPicker = () => {
                 </Form.Group>
                 <div style={{"textAlign": "center"}}>
                     <kbd>Line Width</kbd>
-                    <input className={"slider"} style={{"width" : "270px",marginTop : "15px"}} type="range"></input>
+                    <input onChange={(e) => console.log(e.target.value)} className={"slider"} style={{"width" : "270px",marginTop : "15px"}} type="range"></input>
                 </div>
             </div>
-            <div ref={p_bar} style={{"width" : "10px",height : "50px",backgroundColor : "white"}}></div>
-            <div style={{"width" : "50px",height : "50px",backgroundColor : rgb(gradient[0],gradient[1],gradient[2])}} draggable
-            onDrag={(e) => {
-            let elm = e.currentTarget;
-            elm.style.left = `${e.clientX-80}px`
-            elm.style.top = `${e.clientY-100}px`
-            }}
-            onDrop={(e) => {
-            let elm = e.currentTarget;
-            elm.style.left = `${e.clientX}px`
-            elm.style.top = `${e.clientY}px`
-            }}
-            ></div>
+            <div ref={p_bar} 
+            style={{"width" : "20px",height : "20px",backgroundColor : "transparent",userSelect : "none",pointerEvents : "none",
+            borderRadius : "50px",position : "absolute",border : "3px solid white",
+            left : `${xy[0]}px`,top : `${xy[1]}px`,}}></div>
+            <div style={{"width" : "10px",height : "40px",backgroundColor : "black",
+            userSelect : "none",pointerEvents : "none",
+            position : "absolute",left : `${sliderXY[0]}px`,top : `${sliderXY[1]}px`}} ref={slider}>
+            </div>
+            
+            <div style={{"width" : "50px",height : "50px",marginTop : "10px",
+            borderRadius : "10px",border : "5px solid #343a40",
+            backgroundColor : rgb(gradient[0],gradient[1],gradient[2]),}} draggable={"false"}></div>
         </div>
 
         

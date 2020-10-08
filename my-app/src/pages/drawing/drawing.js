@@ -133,15 +133,19 @@ export default function Drawing() {
 
   // Draw on Screen
   const handleMove = (e) => { 
+    e.preventDefault();
     const canvas = document.getElementById("canvas");
     if(!drawing) return null;
     let ctx = canvas.getContext("2d");
+    let s = e.currentTarget.getBoundingClientRect();
+    let [x,y] = [e.clientX,e.clientY];
+    let [dx,dy] = [s.left,s.top];
 
     // Settings
     ctx.lineCap = "round";
     ctx.lineWidth = LineWidth;
     ctx.strokeStyle  = color;
-    let [x,y] = [e.clientX-20,e.clientY-80]
+    [x,y] = [x-dx,y-dy]
     if(keys){
       ctx.beginPath();
       ctx.arc(x, y, 50, 0, 2 * Math.PI);
@@ -152,9 +156,9 @@ export default function Drawing() {
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(x-caligraphy,y-caligraphy)
-    socket.send(JSON.stringify(
-      {type : 2, value : [x,y,LineWidth,color]}
-      ))
+    // socket.send(JSON.stringify(
+    //   {type : 2, value : [x,y,LineWidth,color]}
+    //   ))
 
     // console.log(paths)
   }
@@ -226,7 +230,7 @@ export default function Drawing() {
         <span style={{"visibility" : "hidden"}}>hello world</span>
       </div>
       <div class="css" style={{float : "left",height : "600px",width : "300px",marginLeft : "20px",marginTop : "10px",position : "relative"}}>
-        <ColorPicker />
+        <ColorPicker setParentColor={setColor} />
       </div>
       <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",backgroundColor : "aliceblue"}} onKeyDown={e => handleKeyPress(e)}
        onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
