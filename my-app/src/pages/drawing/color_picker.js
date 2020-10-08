@@ -18,7 +18,9 @@ const ColorPicker = (props) => {
     const [gradient,setGradient] = useState([228, 204, 204]);
     const [xy,setXY] = useState([27, 27]);
     const [mouseDown,setMouseDown] = useState(false);
+    const [mouseDownButOutside,setMouseDownButOutside] = useState(false);
     const [sliderXY,setSliderXY] = useState([30,300]);
+    const [sliderDownButOutside,setSliderDownButOutside] = useState(false);
     const [sliderMouseDown,setSliderMouseDown] = useState(false);
     const [cursor,setCursor] = useState("auto");
     const cvs = useRef();
@@ -131,11 +133,15 @@ const ColorPicker = (props) => {
             onMouseLeave={(e) => {
                 e.preventDefault();
                 setCursor("auto");
+                if(mouseDown) setMouseDownButOutside(true);
                 setMouseDown(false);
             }}
 
             onMouseEnter={() => {
-
+                if(mouseDownButOutside && props.GMouse) {
+                    setCursor("pointer");
+                    setMouseDown(true);    
+                }
             }}
 
             id={"myCanvas"} width={"256px"} height={"256px"}></canvas>
@@ -158,7 +164,17 @@ const ColorPicker = (props) => {
                 console.log("Mouse has left the area")
                 e.preventDefault()
                 setCursor("auto");
+                console.log(`Is my mouse down ? : ${sliderMouseDown}`)
+                if(sliderMouseDown) setSliderDownButOutside(true);
                 setSliderMouseDown(false);
+            }}
+
+            onMouseEnter={() => {
+                console.log(`Is my mouse down ? : ${sliderDownButOutside} and is Gmouses on ? : ${props.GMouse}`)
+                if(sliderDownButOutside && props.GMouse) {
+                    setCursor("pointer");
+                    setSliderMouseDown(true);    
+                }
             }}
 
             onMouseMove={(e) => {

@@ -19,6 +19,7 @@ function rgbToHex(r, g, b) {
 export default function Drawing() {
   useAuthentication();
   const [drawing,setDrawing] = useState(false);
+  const [drawingButMouseOutside,setDrawingButMouseOutsie] = useState(false);
   const [LineWidth,setLineWidth] = useState(10);
   const [caligraphy,setCaligrapgy] = useState(0);
   const [color,setColor] = useState([0,0,0]);
@@ -35,7 +36,7 @@ export default function Drawing() {
   const [socket,setSocket] = useState();
   const [players,setPlayers] = useState([]);
   const [msgs,setMSG] = useState([]);
-  const [gradient,setGradient] = useState([]);
+  const [GMouse,setGMouse] = useState(false);
 
   const drawData = (x,y,lineWidth,strokeStyle) => {
     const canvas = document.getElementById("canvas");
@@ -221,58 +222,82 @@ export default function Drawing() {
   }
 
   return (
-    <Container style={{maxWidth: "1500px"}} >
-      <div style={{"marginLeft" : "20px",marginTop : "10px"}}>
-        {players.map(player => (
-          <Display m_left={players.indexOf(player)==0 ? 0 : '10px'} color={player.color} username={player.username} score={player.score} image={`http://localhost:8000/${player.img}`} />
-        ))}
-        <span style={{"visibility" : "hidden"}}>hello world</span>
-      </div>
-      <div class="css" style={{float : "left",height : "600px",width : "300px",marginLeft : "20px",marginTop : "10px",position : "relative"}}>
-        <ColorPicker setParentColor={setColor} opacity={opacity} setOpacity={setOpacity} setLineWidth={setLineWidth} LineWidth={LineWidth} />
-      </div>
-      <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",background : "linear-gradient(45deg, black, transparent)",backgroundColor : "aliceblue",border : "5px solid #232525"}} onKeyDown={e => handleKeyPress(e)}
-       onMouseUp={() =>  {setDrawing(false);document.getElementById("canvas").getContext("2d").beginPath()}}
-       
-       onKeyDown={(e) => {
-        e.preventDefault()
-         handleKeyDown(e);
-       }} 
-
-       onKeyUp={(e) => {
-        handleKeyUp(e)
-       }}
-   
-       onMouseDown={(e) => {
-        setDrawing(true)
-       }} 
-       onMouseMove={(e) => {
-        window.getSelection().removeAllRanges()
-        handleMove(e);
-       }} width={800} height={600} id="canvas"></canvas>
-
-      <div style={{"float" : "right",resize : "none",marginRight : "50px",marginTop : "10px"}}>
-        <div className={"css"} style={{height : "421px",width : "250px",backgroundColor : "transparent"}}>
-          {msgs.map(m => (
-            <div>
-              <label className={"text-muted"}>{m.date}&nbsp;</label>
-              <label style={{"color" : `rgba(${m.color[0]},${m.color[1]},${m.color[2]})`}}>{m.username}</label>
-              <label>&nbsp;:&nbsp;</label>
-              <label>{m.value}</label>
-            </div>
+    <div style={{position : "fixed",width : "100%",height : "100%"}}
+    onMouseDown={() => {
+      setGMouse(true);
+    }}
+    onMouseUp={() => {
+      setGMouse(false);
+    }}
+    
+    onMouseLeave={() => {
+      setGMouse(false);
+    }}>
+      <Container style={{maxWidth: "1500px"}}>
+        <div style={{"marginLeft" : "20px",marginTop : "10px"}}>
+          {players.map(player => (
+            <Display m_left={players.indexOf(player)==0 ? 0 : '10px'} color={player.color} username={player.username} score={player.score} image={`http://localhost:8000/${player.img}`} />
           ))}
+          <span style={{"visibility" : "hidden"}}>hello world</span>
         </div>
-        <Form.Group style={{"marginTop" : "30px"}}  controlId="exampleForm.ControlTextarea1">
-          <Form.Control onKeyDown={(e) => {
-            if(e.key==='Enter' || e.keyCode===13 || e.which===13){
-              e.preventDefault();
-              socket.send(JSON.stringify({"type" : 1,'value' : e.target.value}))}}} 
-              style={{"resize" : "none","maxHeight" : "50px",        
-              background : "radial-gradient(#07071e, transparent)",
-              backgroundColor : "#2e343a",
-              border : "1px solid #333b52"}} as="textarea" rows="3" />
-        </Form.Group>
-      </div>
-    </Container>
+        <div class="css" style={{float : "left",height : "600px",width : "300px",marginLeft : "20px",marginTop : "10px",position : "relative"}}>
+          <ColorPicker GMouse={GMouse} setParentColor={setColor} opacity={opacity} setOpacity={setOpacity} setLineWidth={setLineWidth} LineWidth={LineWidth} />
+        </div>
+        <canvas className={"cs"} style={{"float" : "left",cursor : "crosshair",marginLeft : "20px",marginTop : "10px",background : "linear-gradient(45deg, black, transparent)",backgroundColor : "aliceblue",border : "5px solid #232525"}} onKeyDown={e => handleKeyPress(e)}
+        onMouseUp={() =>  {
+          setDrawing(false)
+          document.getElementById("canvas").getContext("2d").beginPath()
+        }}
+        
+        onKeyDown={(e) => {
+          e.preventDefault()
+          handleKeyDown(e);
+        }} 
+
+        onKeyUp={(e) => {
+          handleKeyUp(e)
+        }}
+    
+        onMouseDown={(e) => {
+          setDrawing(true)
+        }} 
+
+        onMouseMove={(e) => {
+          window.getSelection().removeAllRanges()
+          handleMove(e);
+        }} 
+        
+        onMouseLeave={(e) => {
+          if(drawing) setDrawingButMouseOutsie(true);
+          setDrawing(false);
+          document.getElementById("canvas").getContext("2d").beginPath()
+        }}
+        
+        width={800} height={600} id="canvas"></canvas>
+
+        <div style={{"float" : "right",resize : "none",marginRight : "50px",marginTop : "10px"}}>
+          <div className={"css"} style={{height : "421px",width : "250px",backgroundColor : "transparent"}}>
+            {msgs.map(m => (
+              <div>
+                <label className={"text-muted"}>{m.date}&nbsp;</label>
+                <label style={{"color" : `rgba(${m.color[0]},${m.color[1]},${m.color[2]})`}}>{m.username}</label>
+                <label>&nbsp;:&nbsp;</label>
+                <label>{m.value}</label>
+              </div>
+            ))}
+          </div>
+          <Form.Group style={{"marginTop" : "30px"}}  controlId="exampleForm.ControlTextarea1">
+            <Form.Control onKeyDown={(e) => {
+              if(e.key==='Enter' || e.keyCode===13 || e.which===13){
+                e.preventDefault();
+                socket.send(JSON.stringify({"type" : 1,'value' : e.target.value}))}}} 
+                style={{"resize" : "none","maxHeight" : "50px",        
+                background : "radial-gradient(#07071e, transparent)",
+                backgroundColor : "#2e343a",
+                border : "1px solid #333b52"}} as="textarea" rows="3" />
+          </Form.Group>
+        </div>
+      </Container>
+    </div>
   );
 };
