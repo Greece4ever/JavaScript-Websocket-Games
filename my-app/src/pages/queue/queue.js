@@ -149,7 +149,7 @@ const Queue = () => {
                }} id={"file"} style={{"visibility" : "hidden"}} type={"file"}></Form.Control>
             </Form.Group>
             <div>
-                <Button style={{width : "100%"}} variant="primary" type="submit" disabled={pass.length > 0 && name.length > 0 && img!=undefined  ? false : true}>
+                <Button style={{width : "100%"}} variant="primary" type="submit" disabled={pass.length > 0 && name.length > 0 && img!==undefined  ? false : true}>
                     Continue
                 </Button>
             </div>

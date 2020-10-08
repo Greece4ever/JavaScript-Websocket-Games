@@ -14,15 +14,52 @@ function findPos(obj) {
     return undefined;
 }
 
-const ColorPicker = () => {
-    const [gradient,setGradient] = useState([]);
+function click(x, y)
+{
+    let ev = new MouseEvent('click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true,
+        'screenX': x,
+        'screenY': y
+    });
+
+    let el = document.elementFromPoint(x, y);
+
+    return el.dispatchEvent(ev);
+}
+
+
+const ColorPicker = (props) => {
+    const [gradient,setGradient] = useState([228, 204, 204]);
+    const [xy,setXY] = useState([27, 27]);
+    const [mouseDown,setMouseDown] = useState(false);
+    const [mouseDownButOutside,setMouseDownButOutside] = useState(false);
+    const [sliderXY,setSliderXY] = useState([30,300]);
+    const [sliderDownButOutside,setSliderDownButOutside] = useState(false);
+    const [sliderMouseDown,setSliderMouseDown] = useState(false);
+    const [cursor,setCursor] = useState("auto");
     const cvs = useRef();
     const img1 = useRef();
     const cvs2 = useRef();
-    const p_bar = useRef()
+    const p_bar = useRef();
+    const slider = useRef();
 
+    const DrawCanvas = (color) => {
+        let canvas = cvs.current;
+        let ctx = canvas.getContext("2d");
+        let img = new Image();
+        img.src = s
+        img.onload = () => {
+            ctx.drawImage(img,1,1)
+        }
+        ctx.fillStyle = color
+        ctx.fillRect(1,1,canvas.width,canvas.height);
+
+    }
+
+    // Draw Initial Canvas
     useEffect(() => {
-        // let canvas = ReactDOM.findDOMNode(cvs);
         let canvas = cvs.current;
         let ctx = canvas.getContext("2d");
         let img = new Image();
@@ -34,6 +71,7 @@ const ColorPicker = () => {
         ctx.fillRect(1,1,canvas.width,canvas.height);
     },[])
 
+    // Create Color Slider
     useEffect(() => {
         const canvas = cvs2.current;
         var ctx = canvas.getContext("2d");
@@ -64,20 +102,112 @@ const ColorPicker = () => {
         let p = ctx.getImageData(x,y,1,1).data;
         let colors = [p[0],p[1],p[2]];
         setGradient(colors)
-        console.log(colors)      
+        props.setParentColor(colors);
       }
-    
 
-      const rgb = (r,g,b) => {
-        return `rgb(${r},${g},${b})`
-      }
- 
-
+    const ChangeColorHue = (e) => {
+        e.preventDefault();
+        let canvas = e.currentTarget;
+        let pos = findPos(canvas);
+        let [x,y] = [e.pageX - pos.x,30];
+        let ctx = canvas.getContext('2d');
+        let p = ctx.getImageData(x,y,1,1).data;
+        DrawCanvas(`rgb(${p[0]},${p[1]},${p[2]})`);
+        let [x1,y1] = xy;
+        click(x1,y1)
+    }
+     
       return(
-          <div>
+          <div style={{"cursor" : cursor}}>
             <img style={{"visibility" : "hidden",position : "absolute"}} ref={img1} src={s}></img>
-            <canvas style={{"border" : "11px solid transparent","background" : "radial-gradient(black, transparent)",borderRadius : "40px"}} ref={cvs} onMouseMove={(e) => ChangeColor(e)} id={"myCanvas"} width={"256px"} height={"256px"}></canvas>
-            <canvas style={{"borderRadius" : "50px",background : "radial-gradient(black, transparent)"}} ref={cvs2} width={"270px"} height={"50px"}>
+            <canvas style={{"border" : "11px solid transparent","background" : "radial-gradient(black, transparent)",borderRadius : "40px"}} ref={cvs} 
+            onMouseDown={(e) => {
+                console.log("click")
+                e.preventDefault();
+                setCursor("pointer");
+                setMouseDown(true);
+            }}
+
+            onMouseUp={(e) => {
+                e.preventDefault();
+                setCursor("auto");
+                setMouseDown(false);
+            }}
+
+            onMouseMove={(e) => {
+                e.preventDefault();
+                if(mouseDown) {
+                    let s = e.currentTarget.getBoundingClientRect();
+                    let [x,y] = [e.clientX,e.clientY];
+                    let [dx,dy] = [s.left,s.top];
+                    ChangeColor(e);
+                    let x_pos = x-dx;
+                    let y_pos = y-dy;
+                    if(x_pos <= 20 || x_pos >= 260 || y_pos >= 255 || y_pos <= 15) return;
+                    setXY(prev => [x-dx,y-dy]);    
+                }
+                return;}} 
+
+            onMouseLeave={(e) => {
+                e.preventDefault();
+                setCursor("auto");
+                if(mouseDown) setMouseDownButOutside(true);
+                setMouseDown(false);
+            }}
+
+            onMouseEnter={() => {
+                if(mouseDownButOutside && props.GMouse) {
+                    setCursor("pointer");
+                    setMouseDown(true);    
+                }
+            }}
+
+            id={"myCanvas"} width={"256px"} height={"256px"}></canvas>
+           
+            <canvas style={{"borderRadius" : "50px",background : "radial-gradient(black, transparent)"}} ref={cvs2} width={"270px"} height={"50px"}
+             onMouseDown={(e) => {
+                e.preventDefault()
+                setCursor("grab");
+                e.preventDefault()
+                setSliderMouseDown(true);
+            }}
+            
+            onMouseUp={(e) => {
+                e.preventDefault()
+                setCursor("auto");
+                setSliderMouseDown(false);
+            }}
+
+            onMouseLeave={(e) => {
+                e.preventDefault()
+                setCursor("auto");
+                if(sliderMouseDown) setSliderDownButOutside(true);
+                setSliderMouseDown(false);
+            }}
+
+            onMouseEnter={() => {
+                if(sliderDownButOutside && props.GMouse) {
+                    setCursor("pointer");
+                    setSliderMouseDown(true);    
+                }
+            }}
+
+            onMouseMove={(e) => {
+                e.preventDefault();
+                if(sliderMouseDown) {
+                    let s = e.currentTarget.getBoundingClientRect();
+                    let x = e.clientX;
+                    let dx = s.left;
+                    let x_pos = x - dx;
+                    if(x_pos <= 30 || x_pos >= 256) {
+                        return;
+                    };
+                    ChangeColorHue(e)
+                    setSliderXY(prev => [x-dx,300]);    
+                }
+            }}
+            
+            >
             </canvas>
             <div>
                 <Form.Group>
@@ -87,33 +217,32 @@ const ColorPicker = () => {
                         <kbd style={{"width" : "20%",marginLeft :"40px",display : "-webkit-flex"}}>BLUE <div style={{"width" : "10px",height : "10px",backgroundColor : "blue",marginLeft : "10px",marginTop : "5px"}}></div></kbd>
                     </Row>
                     <Row style={{"marginTop" : "10px"}}>
-                        <Form.Control value={gradient[0]} className={"css"} style={{"width" : "30%",marginLeft :"10px",background : "radial-gradient(black, transparent)",border : 0}} />
-                        <Form.Control value={gradient[1]} className={"css"} style={{"width" : "30%",marginLeft :"5px",background : "radial-gradient(black, transparent)",border : 0}} />
-                        <Form.Control value={gradient[2]} className={"css"} style={{"width" : "30%",marginLeft :"5px",background : "radial-gradient(black, transparent)",border : 0}} />
+                        <Form.Control readOnly value={gradient[0]} className={"css"} style={{"width" : "30%",marginLeft :"10px",background : "radial-gradient(black, transparent)",border : 0}} />
+                        <Form.Control readOnly value={gradient[1]} className={"css"} style={{"width" : "30%",marginLeft :"5px",background : "radial-gradient(black, transparent)",border : 0}} />
+                        <Form.Control readOnly value={gradient[2]} className={"css"} style={{"width" : "30%",marginLeft :"5px",background : "radial-gradient(black, transparent)",border : 0}} />
                     </Row>
                 </Form.Group>
                 <div style={{"textAlign": "center"}}>
                     <kbd>Line Width</kbd>
-                    <input className={"slider"} style={{"width" : "270px",marginTop : "15px"}} type="range"></input>
+                    <input value={props.lineWidth} onChange={(e) => props.setLineWidth(e.target.value)} className={"slider"} style={{"width" : "270px",marginTop : "15px"}} type="range"></input>
+                </div>
+                <div style={{"textAlign": "center"}}>
+                    <kbd>Opacity</kbd>
+                    <input  onChange={(e) => {props.setOpacity(e.target.value / 100)}} 
+                    className={"slider"} style={{"width" : "270px",marginTop : "15px"}} 
+                    type="range" start={0} end={100}></input>
                 </div>
             </div>
-            <div ref={p_bar} style={{"width" : "10px",height : "50px",backgroundColor : "white"}}></div>
-            <div style={{"width" : "50px",height : "50px",backgroundColor : rgb(gradient[0],gradient[1],gradient[2])}} draggable
-            onDrag={(e) => {
-            let elm = e.currentTarget;
-            elm.style.left = `${e.clientX-80}px`
-            elm.style.top = `${e.clientY-100}px`
-            }}
-            onDrop={(e) => {
-            let elm = e.currentTarget;
-            elm.style.left = `${e.clientX}px`
-            elm.style.top = `${e.clientY}px`
-            }}
-            ></div>
-        </div>
-
-        
-      )
+            <div ref={p_bar} 
+            style={{"width" : "20px",height : "20px",backgroundColor : "transparent",userSelect : "none",pointerEvents : "none",
+            borderRadius : "50px",position : "absolute",border : "3px solid white",
+            left : `${xy[0]}px`,top : `${xy[1]}px`,}}></div>
+            <div style={{"width" : "10px",height : "40px",backgroundColor : "black",
+            userSelect : "none",pointerEvents : "none",
+            position : "absolute",left : `${sliderXY[0]}px`,top : `${sliderXY[1]}px`}} ref={slider}>
+            </div>
+            
+        </div>)
     
        
 }

@@ -3,6 +3,7 @@ from .views import Users
 from random import randrange
 import pprint,json,datetime
 
+
 class Drawing(SocketView):
     def onConnect(self,client,**kwargs):
         self.accept(client)
@@ -38,7 +39,9 @@ class Drawing(SocketView):
         self.send(client,json_config)
         for cli in self.clients:
             self.send(cli,json_config)
-
+        
+        pprint.pprint([ [ {'type' : 0,**self.clients.get(cli)} for cli in self.clients], config])
+        self.send(client,json.dumps([ [{'type' : 0,**self.clients.get(cli)} for cli in self.clients], config]))
         config.pop('type')
         return config
 
