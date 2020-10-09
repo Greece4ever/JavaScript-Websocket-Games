@@ -1,15 +1,42 @@
 import React,{useRef,useState,useEffect} from 'react';
+import katex from "katex";
+// import {Form} from 'react-bootstrap';
+
+function setEndOfContenteditable(contentEditableElement)
+{
+    var range,selection;
+    if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
+    {
+        range = document.createRange();//Create a range (a range is a like the selection but invisible)
+        range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        selection = window.getSelection();//get the selection object (allows you to change selection)
+        selection.removeAllRanges();//remove any selections already made
+        selection.addRange(range);//make the range you have just created the visible selection
+    }
+    else if(document.selection)//IE 8 and lower
+    { 
+        range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
+        range.moveToElementText(contentEditableElement);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        range.select();//Select the range (make it the visible selection
+    }
+}
+
 
 const Test = () => {
     const canvas = useRef();
     const l = useRef();
     const m = useRef();
+    const mathex = useRef();
     const [move,setMove] = useState([400,300])
     const [fac,setFac] = useState(40);
     const [down,setDown] = useState(false);
     const [r,setR] = useState(0); // Sideways movement
     const [u,setU] = useState(0); // Up and down
     const [MouXY,setMouXY] = useState([0,0]);
+    const [func,setFunc] = useState(false);
+    let [text,setText] = useState('')
 
     // Convert canvas cords into X,Y graphable coordinates
     const mapCords = (x,y) => {
@@ -34,14 +61,14 @@ const Test = () => {
         clear();
         const cvs = canvas.current
         let ctx = cvs.getContext('2d');
-        ctx.strokeStyle = "black"
+        ctx.strokeStyle = "white"
         ctx.beginPath()
         ctx.moveTo(0,300-u); // w h
         ctx.lineTo(800+r,300-u); 
         ctx.moveTo(400+r,300+r);
         ctx.lineTo(400+r,0-u)
         ctx.moveTo(400+r,300+r);
-        ctx.lineTo(400+r,600)
+        ctx.lineTo(400+r,600);
         ctx.stroke()
         // ctx.lineTo(400,0);
     },[fac,r,u])
@@ -52,22 +79,41 @@ const Test = () => {
         ctx.clearRect(0, 0, canvas.current.width, canvas.current.height)
     }
 
+    useEffect(() => {
+        katex.render(text,mathex.current,{throwOnError: false})
+        setEndOfContenteditable(mathex.current)
+        try {
+            let eq_lambda = parseEquation(text)
+            clear()
+            setFunc(prev => eq_lambda);
+            setR(prev => prev-0.01)
+        }
+        catch {return;}
+        // console.log(parseEquation(text))
+    },[text])
 
     // Left Cords
     useEffect(() => {
         const cvs = canvas.current
+        console.log("CHABGUIB")
+        console.log(func)
         let ctx = cvs.getContext('2d');
+        if(func){
+            graph(func)
+        }
         let cur = 400;
         ctx.font  = "10px Arial"
         ctx.moveTo(400,300);
         let j =1;
         let factor = fac;
+        ctx.fillStyle = "white"
         for(let i=0;i < 10;i++) {
             ctx.beginPath();
             ctx.moveTo(cur + factor,300); 
             ctx.strokeStyle = "rgba(48,73,152,0.3)";
             ctx.lineTo(cur + factor,0-u); // <---- 280 (grid)
             ctx.lineTo(cur + factor,600); // <---- 280
+            ctx.fillStyle = "white"
             ctx.fillText(String(j),cur + factor+r,320-u) // <--- r is going left or right
             ctx.stroke();
             j+=1;
@@ -170,36 +216,41 @@ const Test = () => {
     }
 
     const f = (x) => {
-        return x
+        return Math.tanh(Math.sin(x**2))
     }
 
+    const parseEquation = (str) => {
+        if(str.trim().length == 0) return;
+        let sides = str.split("=");
+        return eval(`x => ${sides[1].trim()}`)
+    }
 
     return(
-        <div>
-            <canvas tabIndex={0} ref={canvas} 
-            onContextMenu={(e) => {
-                e.preventDefault();
-                let s = e.currentTarget.getBoundingClientRect();
-                let [x,y] = [e.clientX,e.clientY];
-                let [dx,dy] = [s.left,s.top];
-                let diff = [x-dx,y-dy];
-                console.log(`Move to ${JSON.stringify(diff)}`)
-                setMove(diff)
-                canvas.current.getContext('2d').moveTo(x-dx,y-dy)
+        <div style={{"textAlign": "center",marginTop : "20px"}}>
+            <div>
+            <div style={{backgroundColor : "#fff",width : "800px",height : "50px",
+            
+            background : "radial-gradient(black, transparent)",color : "rgb(184 184 195)",fontSize : "24px",
+            width : "800px",
+            position : "absolute",left : "50%",transform : "translateX(-50%)"}} ref={mathex} spellCheck={false} onKeyDown={(e) => {
+                let char = e.key;
+                if(char !=='Backspace') return;
+                setText(prev => prev.slice(0,-1))
+                katex.render(text,e.currentTarget,{throwOnError: false})
+                setEndOfContenteditable(e.currentTarget)
             }}
-            onClick={(e) => {
-                let ctx = canvas.current.getContext('2d');
-                ctx.beginPath();
-                let s = e.currentTarget.getBoundingClientRect();
-                let [x,y] = [e.clientX,e.clientY];
-                let [dx,dy] = [s.left,s.top];
-                ctx.moveTo(...move)
-                ctx.lineTo(x-dx,y-dy);
-                console.log(`Line to ${[x,y]}`)
-                ctx.stroke();
-       
+            
+            onKeyPress={(e) => {
+                let char = e.key;
+                if(char==='Enter') return;
+                setText(prev => prev + char)
+                // katex.render(text,e.currentTarget,{throwOnError: false})
+                // setEndOfContenteditable(e.currentTarget)
             }}
+            contentEditable>
+            </div>
 
+            <canvas tabIndex={0} ref={canvas} 
             // Zoom
             onWheel={(e) => {
                 clear();
@@ -243,8 +294,6 @@ const Test = () => {
                 }
 
                 return setMouXY([x,y])
-
-                
             }}
 
             onKeyPress={(e) => {
@@ -261,33 +310,8 @@ const Test = () => {
                 }
             }}
 
-            style={{"backgroundColor" : "white",cursor : down ? "move" : 'auto'}} width={800} height={600}></canvas>
-            <input ref={m} placeholder={"Move To"}></input>
-            <input ref={l} placeholder={"Line To"}></input>
-            <button onClick={() => handleClick()}>Draw</button>
-            <button onClick={() => clear()}>Clear</button>
-            <button onClick={() => {plot(
-                JSON.parse(m.current.value),JSON.parse(l.current.value)
-            )}}>Plot</button>
-            <button onClick={() => {
-                graph(f)
-                // let x = [];
-                // let y = [];
-                // let x1,y1;
-                // for(let i=-1000;i < 1000;i++) {
-                //     x1 = i / 100;
-                //     y1 = f(x1);
-                //     x.push(x1);
-                //     y.push(y1)
-                // }
-                // plot(x,y)
-            }}>Plot Function</button>
-            <button onClick={() => {
-                clear();
-                setFac(prev => prev*0.9)
-                console.log(fac)
-            }}>Clear Graph</button>
-
+            style={{"backgroundColor" : "white",cursor : down ? "move" : 'auto',background : "radial-gradient(black, transparent)"}} width={800} height={600}></canvas>
+            </div>
         </div>
     )
 }
