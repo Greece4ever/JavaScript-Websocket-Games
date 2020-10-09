@@ -47,6 +47,7 @@ class User:
             SELECT user_id FROM TOKEN
             WHERE token=?
         """,(token_id,)).fetchone()
+        print(token)
         if token is None: return False
         user_id = token[0]
         user = self.cursor[0].execute("""

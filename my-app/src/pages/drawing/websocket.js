@@ -1,6 +1,32 @@
-export const SocketHandler = (message) => {
-    let data =  JSON.parse(message.data)
-    console.log(data);
+export const SocketHandler = (message,kwargs) => {
+    let data =  JSON.parse(message.data);
+    const type = data.type;
+    delete data.type;
+    switch(type){
+        case 0: // Connect
+            kwargs.players[0](prev => [...prev,data])
+            break;
+        case 1: // Chat 
+            kwargs.setMSG(prev => [...prev,data])
+            break;
+        case 2:
+            break;
+        case 3:
+            console.log("DISCONNECT")
+            let players = kwargs.players
+            console.log(players)
+            players[1].forEach(player => {
+                console.log([player.id,data.id])
+                if(player.id===data.id) {
+                    let index = players[1].indexOf(player);
+                    return players[0](() => player[1].slice(index,1))
+                }})
+            break;
+        case 4:
+            
+    }
+
+
     //     if(typeof(data)==='string') data = JSON.parse(data);
 
 //     if(data.type===2) {

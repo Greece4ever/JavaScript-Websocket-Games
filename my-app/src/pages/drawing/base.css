@@ -1,8 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Piazzolla:wght@900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300&display=swap');
 
+body,html {
+  overflow: auto;
+}
 
-*{
+* {
     outline : none;
 }
 
@@ -76,5 +79,28 @@
     height: 25px; /* Slider handle height */
     background: #4CAF50; /* Green background */
     cursor: grab; /* Cursor on hover */
+  }
+  
+  ::-webkit-scrollbar {
+    width: 3px;
+    border-radius : 50px;
+  }
+  
+  /* Track */
+  ::-webkit-scrollbar-track {
+    background: #37373c; 
+    border-radius : 50px;
+  }
+   
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+    background: #888; 
+    border-radius : 50px;
+  }
+  
+  /* Handle on hover */
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555; 
+    border-radius : 50px;
   }
   

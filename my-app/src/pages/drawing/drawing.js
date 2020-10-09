@@ -1,17 +1,15 @@
 // import React from 'react';
 // import {BrowserRouter as Router,Route, Switch} from 'react-router-dom'
-import React,{useEffect,useState} from "react"
+import React,{useEffect,useState,useRef} from "react"
 import "./base.css"
 import {Form,Container,Row} from "react-bootstrap"
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Display from "./user_display";
 import ColorPicker from "./color_picker";
-import {SocketHandler} from "./websocket";
 
 // 2/10 Not recommended ----> https://www.pornhub.com/view_video.php?viewkey=ph5f06e9657a805#1
 
 export default function Drawing() {
-  // useAuthentication();
   const [drawing,setDrawing] = useState(false);
   const [drawingButMouseOutside,setDrawingButMouseOutsie] = useState(false);
   const [LineWidth,setLineWidth] = useState(10);
@@ -25,9 +23,11 @@ export default function Drawing() {
     87 : () => setCaligrapgy(prev => prev + 1),
     83 : () => setCaligrapgy(prev => prev - 1),
   };
+  const [connectionClose,setConnectionClose] = useState([]);
+  const [leftDispatch,setLeftDispatch] = useState(false);
   const [opacity,setOpacity] = useState(0.5);
   const [undo,setUndo] = useState(false);
-  const [socket,setSocket] = useState();
+  const socket = useRef(null);
   const [players,setPlayers] = useState([]);
   const [msgs,setMSG] = useState([]);
   const [GMouse,setGMouse] = useState(false);
@@ -48,24 +48,81 @@ export default function Drawing() {
   // Handle Websocket
   useEffect(() => {
     let PORT = 8000;
-    const socket = new WebSocket(`ws://${window.location.hostname}:${PORT}/drawing`);
-    setSocket(socket);
+    socket.current = new WebSocket(`ws://${window.location.hostname}:${PORT}/drawing`);
 
-    socket.onConnect = () => {}
-
-    socket.onmessage = (msg) => {
-      SocketHandler(msg);
+    socket.current.onconnect = () => {
+      console.log("Connected to server")
     }
 
-    socket.onclose = () => {
+    socket.current.onmessage = (msg) => {
+      console.log("message")
+      let data = JSON.parse(msg.data);
+      const type = data.type;
+      delete data.type;
+      switch(type){
+          case 0: // Connect
+              console.log("1 WAS CALLED")
+              console.log(data)
+              console.log(players)
+              setPlayers(prev => [...prev,data])
+              setMSG(prev => [
+                ...prev,{"username" : data.username,"value" : "Has joined the chat!",date : Date.now(),color : data.color}
+              ])
+              break;
+          case 1: // Chat 
+              setMSG(prev => [...prev,data])
+              break;
+          case 2:
+              break;
+          case 3: // Disconnect
+            console.log("DISCONNECT")
+            setConnectionClose(prev => [...prev,data.id])
+            console.log(data)
+              break;
+          case 4: // Connect and need data from all players
+            console.log("4 WAS CALLED")
+            setPlayers(data.data)
+            break;
+      }
+  
+    }
+
+    socket.current.onclose = () => {
       console.log("closed")
     }
 
-    socket.onerror = () => {
+    socket.current.onerror = () => {
       console.log("error")
     }
 
+    return () => {socket.current.close()}
   },[])
+
+
+  // Handle Player exit
+  useEffect(() => {
+    console.log(connectionClose)
+    if(!connectionClose) return;
+    console.log("Connect closed")
+    console.log(connectionClose)
+    console.log(connectionClose.id)
+
+    let pl_arr = players.filter(pl => {
+      let bool = !connectionClose.includes(pl.id);
+      if(bool) setMSG(prev => [...prev,{"username" : pl.username,"value" : "HAS LEFT THE CHAT!",date : Date.now(),color : pl.color}])
+      return bool
+    })
+
+    console.log(pl_arr)
+    setPlayers(pl_arr);
+    setLeftDispatch(!leftDispatch);
+  },[connectionClose])
+
+  useEffect(() => {
+    if(connectionClose.length < 1) return;
+    console.log("DISPATCH WAS CALLED")
+    setConnectionClose([]);
+  },[leftDispatch])
 
   // Set canvas focus
   useEffect(() => {
@@ -212,6 +269,7 @@ export default function Drawing() {
       setGMouse(false);
     }}>
       <Container style={{maxWidth: "1500px"}}>
+        <button onClick={() => console.log(connectionClose)}>PRINT</button>
         <Row style={{"marginLeft" : "20px",marginTop : "10px"}}>
           {players.map(player => (
             <Display m_left={players.indexOf(player)===0 ? 0 : '10px'} color={player.color} username={player.username} score={player.score} image={`http://localhost:8000/${player.img}`} />
@@ -256,8 +314,10 @@ export default function Drawing() {
         
         width={800} height={600} id="canvas"></canvas>
 
-        <div style={{"float" : "right",resize : "none",marginRight : "50px",marginTop : "10px"}}>
-          <div className={"css"} style={{height : "500px",width : "250px",backgroundColor : "transparent"}}>
+        <div style={{"float" : "right",resize : "none",
+        marginRight : "50px",marginTop : "10px"}}>
+          <div className={"css"} style={{height : "500px",width : "250px",
+          backgroundColor : "transparent",overflow : "auto",overflowX: "hidden"}}>
             {msgs.map(m => (
               <div>
                 <label className={"text-muted"}>{m.date}&nbsp;</label>
@@ -274,7 +334,7 @@ export default function Drawing() {
                 let trgt = e.currentTarget
                 if(trgt.value.trim().length < 1) return;
                 e.preventDefault();
-                socket.send(JSON.stringify({"type" : 1,'value' : e.target.value}))
+                socket.current.send(JSON.stringify({"type" : 1,'value' : e.target.value}))
                 trgt.value = '';
               }}} 
                 style={{"resize" : "none","maxHeight" : "50px",        
