@@ -16,7 +16,7 @@ const π = Math.PI
 const e = Math.E;
 const mod = (x,y) => x % y 
 
-const Test = () => {
+const Graph2D = () => {
     const canvas = useRef();
     const l = useRef();
     const m = useRef();
@@ -358,4 +358,4 @@ const Test = () => {
     )
 }
 
-export default Test;
+export default Graph2D;
