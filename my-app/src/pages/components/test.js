@@ -1,28 +1,20 @@
 import React,{useRef,useState,useEffect} from 'react';
 import katex from "katex";
-// import {Form} from 'react-bootstrap';
+import {setEndOfContenteditable} from "./contentEditable";
 
-function setEndOfContenteditable(contentEditableElement)
-{
-    var range,selection;
-    if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
-    {
-        range = document.createRange();//Create a range (a range is a like the selection but invisible)
-        range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
-        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
-        selection = window.getSelection();//get the selection object (allows you to change selection)
-        selection.removeAllRanges();//remove any selections already made
-        selection.addRange(range);//make the range you have just created the visible selection
-    }
-    else if(document.selection)//IE 8 and lower
-    { 
-        range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
-        range.moveToElementText(contentEditableElement);//Select the entire contents of the element with the range
-        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
-        range.select();//Select the range (make it the visible selection
-    }
-}
 
+// Math functions
+const sin = Math.sin
+const cos = Math.cos
+const tan = Math.tan
+const cot = (x) => 1 / Math.tan(x)
+const csc = (x) => 1 / Math.sin(x)
+const sec = (x) => 1 / Math.cos(x)
+const ln = Math.log
+const sqrt = Math.sqrt
+const π = Math.PI
+const e = Math.E;
+const mod = (x,y) => x % y 
 
 const Test = () => {
     const canvas = useRef();
@@ -37,12 +29,46 @@ const Test = () => {
     const [MouXY,setMouXY] = useState([0,0]);
     const [func,setFunc] = useState(false);
     let [text,setText] = useState('')
+    const [cnum,setCnum] = useState(10)
+    const [scale,setScale] = useState(1);
+    const [range,setRange] = useState([-1000,1000]); // Range of values that are going to be computed
+    const [modulo,setModolus] = useState(10);
 
     // Convert canvas cords into X,Y graphable coordinates
     const mapCords = (x,y) => {
         return [400+(x*fac),300+(-y*fac)]
     }
     
+
+    // Configure how many values to show on screen
+    const scaleFactor = (zoom) => {
+        switch(true) {
+            case zoom >= 37:
+                return 10;
+            case zoom < 37 && zoom >= 20:
+                return 20;
+            case zoom < 20 && zoom > 10:
+                return 40;
+            case zoom <= 10:
+                return 60;
+            default:
+                return 30;
+        }
+    }
+
+    // Configure function start and end
+    const scaleRange = (zoom) => {
+        switch(true) {
+            case zoom >= 32:
+                return [1000,-1000];
+            case zoom < 32 && zoom >=123:
+                return [-2000,2000];
+            default:
+                console.log("DEFAULT SCALE WAS CALLED")
+                return [-2500,2500];
+        }
+    }
+
     // Connect each (x,y) coordinate with a line
     const plot = (x,y) => {
         const cvs = canvas.current
@@ -57,6 +83,7 @@ const Test = () => {
         }
     }
 
+    // Draws Cross
     useEffect(() => {
         clear();
         const cvs = canvas.current
@@ -80,23 +107,23 @@ const Test = () => {
     }
 
     useEffect(() => {
+        if(text.length==0) return;
         katex.render(text,mathex.current,{throwOnError: false})
+        // console.log(getCaretPosition(mathex.current))
         setEndOfContenteditable(mathex.current)
         try {
             let eq_lambda = parseEquation(text)
+            console.log(eq_lambda(1))
             clear()
             setFunc(prev => eq_lambda);
             setR(prev => prev-0.01)
         }
         catch {return;}
-        // console.log(parseEquation(text))
     },[text])
 
-    // Left Cords
+    // Left Cords (handle scale)
     useEffect(() => {
         const cvs = canvas.current
-        console.log("CHABGUIB")
-        console.log(func)
         let ctx = cvs.getContext('2d');
         if(func){
             graph(func)
@@ -107,21 +134,24 @@ const Test = () => {
         let j =1;
         let factor = fac;
         ctx.fillStyle = "white"
-        for(let i=0;i < 10;i++) {
+        for(let i=0;i < cnum;i++) {
             ctx.beginPath();
-            ctx.moveTo(cur + factor,300); 
+            ctx.moveTo(cur + factor+r,300); 
             ctx.strokeStyle = "rgba(48,73,152,0.3)";
-            ctx.lineTo(cur + factor,0-u); // <---- 280 (grid)
-            ctx.lineTo(cur + factor,600); // <---- 280
+            ctx.lineTo(cur + factor+r,0-u); // <---- 280 (grid)
+            ctx.lineTo(cur + factor+r,600); // <---- 280
             ctx.fillStyle = "white"
-            ctx.fillText(String(j),cur + factor+r,320-u) // <--- r is going left or right
+            if(j%scale==0) {
+                ctx.fillText(String(j),cur + factor+r,320-u) // <--- r is going left or right
+
+            }
             ctx.stroke();
             j+=1;
             cur += factor;
         }
     },[fac,r,u])
 
-    // Right Cords
+    // Right Cords (handle scale)
     useEffect(() => {
         const cvs = canvas.current
         let ctx = cvs.getContext('2d');
@@ -130,19 +160,21 @@ const Test = () => {
         ctx.moveTo(cur,300);
         let j =1;
         let factor = fac;
-        for(let i=0;i < 10;i++) {
+        for(let i=0;i < cnum;i++) {
             ctx.beginPath();
-            ctx.moveTo(cur - factor,300);
-            ctx.lineTo(cur - factor,0); // 280 <-----
-            ctx.lineTo(cur - factor,600); // <-----
-            ctx.fillText("-" + String(j),cur - factor+r,320-u)
+            ctx.moveTo(cur - factor+r,300);
+            ctx.lineTo(cur - factor+r,0); // 280 <-----
+            ctx.lineTo(cur - factor+r,600); // <----- Left Down Grid
+            if(j%scale==0) {
+                ctx.fillText("-" + String(j),cur - factor+r,320-u)
+            }
             ctx.stroke();
             j+=1;
             cur -= factor;
         }
     },[fac,r,u])
 
-    // Up Cords
+    // Up Cords (handle scale)
     useEffect(() => {
         const cvs = canvas.current
         let ctx = cvs.getContext('2d');
@@ -151,19 +183,21 @@ const Test = () => {
         ctx.moveTo(cur,300);
         let j =1;
         let factor = fac;
-        for(let i=0;i < 10;i++) {
+        for(let i=0;i < cnum;i++) {
             ctx.beginPath();
             ctx.moveTo(400,cur - factor); 
             ctx.lineTo(800,cur - factor); // <----- 420
             ctx.lineTo(0,cur - factor); // <----- 420
-            ctx.fillText(String(j),380+r,cur - factor-u)
+            if(j%scale==0) {
+                ctx.fillText(String(j),380+r,cur - factor-u)
+            }
             ctx.stroke();
             j+=1;
             cur -= factor;
         }
     },[fac,r,u])
     
-    // Down Cords
+    // Down Cords (handle scale)
     useEffect(() => {
         const cvs = canvas.current
         let ctx = cvs.getContext('2d');
@@ -172,12 +206,14 @@ const Test = () => {
         ctx.moveTo(cur,300);
         let j =1;
         let factor = fac;
-        for(let i=0;i < 10;i++) {
+        for(let i=0;i < cnum;i++) {
             ctx.beginPath();
             ctx.moveTo(400,cur + factor);
             ctx.lineTo(800,cur + factor); // <----- 420
             ctx.lineTo(0,cur + factor); // <----- 420
-            ctx.fillText("-" + String(j),380+r,cur + factor -u)
+            if(j%scale==0) {
+                ctx.fillText("-" + String(j),380+r,cur + factor -u)
+            }
             ctx.stroke();
             j+=1;
             cur += factor;
@@ -192,6 +228,7 @@ const Test = () => {
         let y = [];
         let x1,y1;
         for(let i=start;i < end;i++) {
+            if(i%10!=0) continue;
             x1 = i / 100;
             y1 = f(x1);
             if(isNaN(y1)) continue;
@@ -222,7 +259,8 @@ const Test = () => {
     const parseEquation = (str) => {
         if(str.trim().length == 0) return;
         let sides = str.split("=");
-        return eval(`x => ${sides[1].trim()}`)
+        let s_2 = sides[1].trim().replace("sin","Math.sin")
+        return eval(`x => ${s_2}`)
     }
 
     return(
@@ -253,11 +291,15 @@ const Test = () => {
             <canvas tabIndex={0} ref={canvas} 
             // Zoom
             onWheel={(e) => {
+                setCnum(scaleFactor(fac))
+                // setRange(scaleRange(fac))
                 clear();
                 if(e.deltaY > 0){
                     if(fac <= 7) return setFac(prev => prev + 1);
+                    if(fac <=20) setScale(5);
                     return setFac(prev => prev-1);    
                 }
+                if(fac >20) setScale(1);
                 return setFac(prev => prev+1)
             }}
 
@@ -272,24 +314,24 @@ const Test = () => {
             onMouseMove={(e) => {
                 if(!down) return; 
                 let [x,y] = [e.clientX, e.clientY];
-                console.log(`${[x,y]} is ${MouXY}`)
+                console.log(x,y)
 
                 switch(true){
                     case x > MouXY[0]:
                         console.log('less')
-                        setR(prev => prev + 1);
+                        setR(prev => prev + 4);
                         break;
                     case x < MouXY[0]:
-                        setR(prev => prev - 1)
+                        setR(prev => prev - 4)
                         break
                 }
 
                 switch(true) {
                     case y < MouXY[1]:
-                        setU(prev => prev + 1);
+                        setU(prev => prev + 4);
                         break
                     case y > MouXY[1]:
-                        setU(prev => prev - 1);
+                        setU(prev => prev - 4);
                         break
                 }
 
