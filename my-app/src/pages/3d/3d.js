@@ -1,17 +1,21 @@
 import React,{useRef,useEffect,useState} from 'react';
 import * as math from 'mathjs';
-import Vertices from "./coordinates";
+import Vertices,{Triangle} from "./coordinates";
 
 const Test3D = () => {
     const c3d = useRef();
     const [ctx,setCtx] = useState();
     const [width, height] = [800,600]
     const [fac,setFac] = useState(40);
-    const [angle,setAngle] = useState(20);
+    const [angleZ,setAngleZ] = useState(20);
     const [angleX,setAngleX] = useState(0);
     const [angleY,setAngleY] = useState(0);
-    // const [mesh,setMesh] = useState(Vertices);
-    
+    // const [mesh,setMesh] = useState([[[0,0,0],[0,0,2],[0,2,2],[2,2,2]],[[2,2,0],[0,2,0],[0,0,0],[2,0,0]],[[2,0,2],[0,0,2],[0,2,2],[0,2,0]],[[2,2,0],[2,0,0],[2,0,2],[2,2,2]]]);
+    const [mesh,setMesh] = useState(Triangle)
+    const [scaleFactor,setScaleFactor] = useState(1);
+    let [real_ange,setRealAnge] = useState(0);
+    const [mouse,setMouse] = useState(false);
+    const [mc,setMc] = useState([0,0])
     
     // Matrix that projects 3D Vectors to 2D
     const ProjectionMatrix = math.matrix([
@@ -19,12 +23,13 @@ const Test3D = () => {
         [0,1,0]
     ]);
 
-    // 2D Rotation (Z Axis)
+    // 2D Rotation Matrices
     const RotationMatrixZ = (theta) => {
         const new_theta = theta * (Math.PI / 180) // Convert to degrees
         return math.matrix([
-            [Math.cos(new_theta),-Math.sin(new_theta)],
-            [Math.sin(new_theta),Math.cos(new_theta)]
+            [Math.cos(new_theta),-Math.sin(new_theta),0],
+            [Math.sin(new_theta),Math.cos(new_theta),0],
+            [0,0,1]
         ])
     }
 
@@ -32,17 +37,17 @@ const Test3D = () => {
         const new_theta = theta * (Math.PI / 180) // Convert to degrees
         return math.matrix([
             [1,0,0],
-            [0,Math.cos(theta),-Math.sin(theta)],
-            [0,Math.sin(theta),Math.cos(theta)]
+            [0,Math.cos(new_theta),-Math.sin(new_theta)],
+            [0,Math.sin(new_theta),Math.cos(new_theta)]
         ])
     }
 
     const RotationMatrixY = (theta) => {
         const new_theta = theta * (Math.PI / 180) // Convert to degrees
         return math.matrix([
-            [Math.cos(theta),0,Math.sin(theta)],
+            [Math.cos(new_theta),0,Math.sin(new_theta)],
             [0,1,0],
-            [-Math.sin(theta),0,Math.cos(theta)]
+            [-Math.sin(new_theta),0,Math.cos(new_theta)]
         ])
     }
 
@@ -50,37 +55,61 @@ const Test3D = () => {
         ctx.clearRect(0, 0, width, height)
     }
 
-    useEffect(() => {
-        if(!ctx) return;
-        // console.log(angle)
-        clear();
-        let Inverted = RotateZ(angle,Vertices);
-        ConnectPoints(Inverted[0]);
-        ConnectPoints(Inverted[1]);
-        ConnectPoints(Inverted[2]);
-        ConnectPoints(Inverted[3]);
-    },[angle])
+    // Rotation due to changes in angle
 
+
+    // useEffect(() => {
+    //     if(!ctx) return;
+    //     clear();
+    //     let rotated_mesh = Rotate(angleZ,mesh,'z');
+    //     setMesh(rotated_mesh);
+    //     rotated_mesh.forEach(point => {
+    //         ConnectPoints(point)
+    //     })
+    // },[angleZ])
+
+    // useEffect(() => {
+    //     if(!ctx) return;
+    //     clear()
+    //     let rotated_matrix = Rotate(angleX,mesh,'x');
+    //     setMesh(rotated_matrix);
+    //     rotated_matrix.forEach(point => {
+    //         ConnectPoints(point)
+    //     })
+    // },[angleX])
+
+    // useEffect(() => {
+    //     if(!ctx) return;
+    //     clear();
+    //     let rotated_matrix = Rotate(angleY,mesh,'y');
+    //     setMesh(rotated_matrix);
+    //     rotated_matrix.forEach(point => {
+    //         ConnectPoints(point)
+    //     })
+    // },[angleY])    
+
+    // useEffect(() => {
+    //     let cases = ['x','y','z'];
+
+    //     let interval = setTimeout(() => {
+    //         // let choice = cases[Math.round(Math.random() * 2)]
+    //         setMesh(Rotate(real_ange,mesh,'y'))
+    //         setRealAnge(prev => prev+0.01)
+    //     },20)
+
+    //     return () => {clearTimeout(interval)}
+    // })
+
+    // Re-render when something changes
     useEffect(() => {
         if(!ctx) return;
         clear()
-        console.log(angleX);
-        let rotated_matrix = RotateX(angleX,Vertices);
-        rotated_matrix.forEach(point => {
+        console.log(mesh)
+        mesh.forEach(point => {
             ConnectPoints(point)
         })
-        console.log(rotated_matrix)
-    },[angleX])
+    },[mesh])
 
-    useEffect(() => {
-        if(!ctx) return;
-        clear();
-        let rotated_matrix = RotateY(angleY,Vertices);
-        rotated_matrix.forEach(point => {
-            ConnectPoints(point)
-        })
-        console.log(rotated_matrix)
-    },[angleY])
 
     // Project 3D Cordinates to 2D
     const Project2D = (x,y,z,returnMatrix=false) => {
@@ -107,7 +136,22 @@ const Test3D = () => {
         return arr;
     };
 
-    const RotateZ = (theta,matrix) => {
+    // Rotate 3D Cordinates (Vertices)
+    const Rotate = (theta,matrix,axis) => {
+        let rot_axis;
+        switch(axis.toLowerCase()) {
+            case 'y':
+                rot_axis = RotationMatrixY;
+                break;
+            case 'x':
+                rot_axis = RotationMatrixX;
+                break;
+            case 'z':
+                rot_axis = RotationMatrixZ;
+                break;
+            default:
+                return NaN;
+        }
         let r_matrix = [];
         let tmp_matrix = [];
         let m_side;
@@ -115,51 +159,19 @@ const Test3D = () => {
             tmp_matrix = [];
             m.forEach(point => {
                 m_side = math.multiply(
-                    RotationMatrixZ(theta),
-                    Project2D(...point,true)
+                    rot_axis(theta),
+                    point // Project2D(...point,true)
                 )._data;
-                m_side = [m_side[1][0],m_side[0][0]]
                 tmp_matrix.push(m_side);  
             })
             r_matrix.push(tmp_matrix);
         })
         return r_matrix
+
     }
 
-    const RotateX = (theta,matrix) => {
-        let r_matrix = [];
-        let tmp_matrix = [];
-        let m_side;
-        matrix.forEach(m => {
-            tmp_matrix = [];
-            m.forEach(point => {
-                m_side = math.multiply(
-                    RotationMatrixX(theta),
-                    point
-                )._data;
-                tmp_matrix.push(m_side);  
-            });
-            r_matrix.push(tmp_matrix);
-        });
-        return r_matrix
-    };
-
-    const RotateY = (theta,matrix) => {
-        let r_matrix = [];
-        let tmp_matrix = [];
-        let m_side;
-        matrix.forEach(m => {
-            tmp_matrix = [];
-            m.forEach(point => {
-                m_side = math.multiply(
-                    RotationMatrixY(theta),
-                    point
-                )._data;
-                tmp_matrix.push(m_side);  
-            });
-            r_matrix.push(tmp_matrix);
-        });
-        return r_matrix
+    const Scale = (factor,matrix) => {
+        return math.multiply(factor,math.matrix(matrix))._data;
     }
 
     const cords = (e) => {
@@ -174,38 +186,59 @@ const Test3D = () => {
     },[])
 
 
+    // Convert Pixel Width-Height to custom cartesian coordinates
     const mapCords = (x,y) => {
         return [(width/2)+(x*fac),(height/2)+(-y*fac)]
     }
 
+    // Cartesian to Pixel
+    const unMapCords = (x,y) => {
+        return [
+            ( x - (width/2) ) / fac,( y - (height/2) ) / fac
+        ]
+    }
+
+    function getRandomColor() {
+        var letters = '0123456789ABCDEF';
+        var color = '#';
+        for (var i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+      }
+      
+
     const ConnectPoints = (Square) => {
-        ctx.strokeStyle = "black";
         let move,line;
         move = mapCords(...Square[0])
+        let j =0;
         Square.forEach(i => {
+            console.log(j)
             ctx.beginPath()
+            ctx.strokeStyle = "orange"
             line = mapCords(...i);
             ctx.moveTo(...move);
             ctx.lineTo(...line);
             ctx.stroke();
+            // ctx.strokeStyle = "blue"
+            ctx.arc(...line,5,0,360,10)
+            ctx.stroke();
+            // ctx.fillRect(...line,10,10)
             move = line;
-       })
+            j++;
+        })
+
     }
 
-    // Draw Coordinate system
-    useEffect(() => {
-        if(!ctx) return;
-        ctx.strokeStyle = "black"
-        ctx.beginPath()
-        ctx.moveTo(0,300); // w h
-        ctx.lineTo(800,300); 
-        ctx.moveTo(400,300);
-        ctx.lineTo(400,0)
-        ctx.moveTo(400,300);
-        ctx.lineTo(400,600);
-        ctx.stroke()
-        // ctx.lineTo(400,0);
-    },[ctx])
+    const PlotFunction = (f) => {
+        let vals = [];
+        for(let x=0;x<=50;x++) {
+            for(let y=0;y<=50;y++) {
+                vals.push(Project2D(...[x/10,y/10,f(x/10,y/10)]))
+            }
+        }
+        return vals
+    }
 
     // [x,y]
     // [1,0] 
@@ -214,61 +247,83 @@ const Test3D = () => {
     // [0,0]
     return (
         <div>
-            {/* Down Square */}
-
-            <button onClick={() => {
-                let Projected,VertProjected;
-                Vertices.forEach(vertex => {
-                    VertProjected = [];
-                    vertex.forEach(point => {
-                        Projected = Project2D(...point);
-                        VertProjected.push(Projected);
-
-                    })
-                    ConnectPoints(VertProjected)
-                })
-            }}>
-                Horizontal
-            </button>
-
-            <button onClick={() => {
-                clear();
-                let Inverted = RotateZ(angle,Vertices);
-                ConnectPoints(Inverted[0]);
-                ConnectPoints(Inverted[1]);
-                ConnectPoints(Inverted[2]);
-                ConnectPoints(Inverted[3]);
-            }}>
-                Rotate
-            </button>
-
             <br></br>
             <label>Rotate <b>Z</b></label>
-            <input style={{"marginLeft" : "20px"}} onChange={(e) => setAngle(e.target.value)} min={0} max={360} type="range"></input>
+            <input style={{"marginLeft" : "20px"}} onChange={(e) => {
+                setAngleZ(e.target.value*0.0174532925)
+                setMesh(Rotate(e.target.value*0.0174532925,mesh,'z'))
+            }} min={0} max={360} type="range"></input>
             <br></br>
             <label>Roate <b>X</b></label>
-            <input style={{"marginLeft" : "20px"}} onChange={(e) => setAngleX(e.target.value/100)} min={0} max={360} type="range"></input>
+            <input style={{"marginLeft" : "20px"}} onChange={(e) => {
+                setAngleX(e.target.value*0.0174532925);
+                setMesh(Rotate(e.target.value*0.0174532925,mesh,'x'))
+            }} min={0} max={360} type="range"></input>
             <br></br>
             <label>Roate <b>Y</b></label>
-            <input style={{"marginLeft" : "20px"}} onChange={(e) => setAngleY(e.target.value/100)} min={0} max={360} type="range"></input>
+            <input style={{"marginLeft" : "20px"}} onChange={(e) => {
+                setAngleY(e.target.value*0.0174532925 );
+                setMesh(Rotate(e.target.value*0.0174532925 ,mesh,'y'))
+            }} min={0} max={360} type="range"></input>
+            <br></br>
+            <label><b>Scale</b></label>
+            <input style={{"marginLeft" : "20px"}} onChange={(e) => {
+                setScaleFactor(e.target.value);
+                setMesh(Scale(e.target.value,mesh));
+            }} min={1} max={10} type="range"></input>
 
-            <canvas style={{"background" : "white"}} ref={c3d}
+            <label>Roate <b>Forward</b></label>
+            <input value={-mc} style={{"marginLeft" : "20px"}} onChange={(e) => {
+                setAngleY(e.target.value*0.0174532925 );
+                setMesh(Rotate(e.target.value*0.0174532925 ,mesh,'y'))
+            }} min={0} max={360} type="range"></input>
+            <br></br>
+            <label>Roate <b>Backwards</b></label>
+            <input value={mc} style={{"marginLeft" : "20px"}} onChange={(e) => {
+                setMc(e.target.value*0.0174532925);
+                setMesh(Rotate(e.target.value*0.0174532925 ,mesh,'y'))
+            }} min={0} max={360} type="range"></input>
+            <br></br>
+
+
+            <canvas style={{"background" : "rgba(0,0,0,0.5)"}} ref={c3d}
             height={height} width={width}
-            onContextMenu={(e) => {
-                e.preventDefault();
-                let [x,y] = cords(e);
-                ctx.moveTo(x,y);
-            }}
+
+
+            // onMouseDown={() => {
+            //     setMouse(true)
+            // }}
+
+            // onMouseMove={(e) => {
+            //     if(!mouse) return;
+                // let s = e.currentTarget.getBoundingClientRect()
+                // let [x,y] = [e.clientX-s.left,e.clientY-s.top];
+            //     console.log(x,y)
+
+            //     switch(true) {
+            //         case y > mc[1]:
+            //             setMesh(prev => Rotate(y*0.0174532925,prev,'y'))
+            //             break;
+            //     }
+
+            //     setMc([x,y])
+
+            // }}
+
+
+
+            // onMouseUp={() => {
+            //     setMouse(false);
+            // }}
             
-            onClick={(e) => {
-                let [x,y] = cords(e)
-                ctx.lineTo(x,y);
-                ctx.stroke();
-            }}>
+            >
             </canvas>
+            <input id="peos"></input>
+            <button onClick={() => {
+                setMesh(Rotate(Number(document.getElementById("peos").value),mesh,'y'))
+            }}>Rotate</button>
         </div>
     )
 };
-
 
 export default Test3D;
